@@ -1,4 +1,4 @@
-import sqlite3 as lite
+import psycopg2
 
 
 class DB:
@@ -11,7 +11,7 @@ class DB:
 
     def create(self):
 
-        drop_datatype = "DROP TABLE IF EXISTS data_type"
+        drop_datatype = "DROP TABLE IF EXISTS data_type CASCADE "
 
         create_datatype = """
             CREATE TABLE data_type ( 
@@ -20,7 +20,7 @@ class DB:
             );
         """
 
-        drop_pagetype = "DROP TABLE IF EXISTS page_type"
+        drop_pagetype = "DROP TABLE IF EXISTS page_type CASCADE "
 
         create_pagetype = """CREATE TABLE page_type ( 
             code    varchar(20)  NOT NULL,	
@@ -28,7 +28,7 @@ class DB:
             );
         """
 
-        drop_site = "DROP TABLE IF EXISTS site"
+        drop_site = "DROP TABLE IF EXISTS site CASCADE "
 
         create_site = """CREATE TABLE site ( 
         id                   serial  NOT NULL,
@@ -39,7 +39,7 @@ class DB:
         );
     """
 
-        drop_page = "DROP TABLE IF EXISTS page"
+        drop_page = "DROP TABLE IF EXISTS page CASCADE "
 
         create_page = """CREATE TABLE page ( 
         id                   serial  NOT NULL,
@@ -61,7 +61,7 @@ class DB:
 
         drop_idx_page_page_type_code = "DROP INDEX IF EXISTS idx_page_page_type_code"
 
-        drop_page_data = "DROP TABLE IF EXISTS page_data"
+        drop_page_data = "DROP TABLE IF EXISTS page_data CASCADE "
 
         create_page_data = """CREATE TABLE page_data ( 
         id                   serial  NOT NULL,
@@ -72,7 +72,7 @@ class DB:
         );
     """
 
-        drop_idx_page_data_page_id = "DROP INDEX IF EXISTS idx_page_data_page_id"
+        drop_idx_page_data_page_id = "DROP INDEX IF EXISTS idx_page_data_page_id CASCADE "
 
         create_idx_page_data_page_id = "CREATE INDEX idx_page_data_page_id ON page_data ( page_id )"
 
@@ -152,7 +152,6 @@ class DB:
             ('FRONTIER')
         """
 
-
         self.cur.execute(drop_datatype)
         self.cur.execute(create_datatype)
         self.cur.execute(drop_pagetype)
@@ -183,7 +182,6 @@ class DB:
         self.cur.execute(create_idx_link_to_page)
 
         # sqlite does not allow adding constraints to existing tables
-        """
         self.cur.execute(fk_image)
         self.cur.execute(fk_link_page)
         self.cur.execute(fk_link_page_1)
@@ -191,7 +189,6 @@ class DB:
         self.cur.execute(fk_page_page_type)
         self.cur.execute(fk_page_data_page)
         self.cur.execute(fk_page_data_data_type)
-        """
 
         self.cur.execute(insert_data_type_vals)
         self.cur.execute(insert_page_type_vals)
@@ -201,10 +198,11 @@ class DB:
     def connect(self):
         if not self.conn:
             try:
-                self.conn = lite.connect(self.dbname)
+                self.conn = psycopg2.connect(host="localhost", user="user",
+                                             password="SecretPassword")
                 self.cur = self.conn.cursor()
 
-            except lite.Error as e:
+            except psycopg2.Error as e:
                 if self.conn:
                     self.conn.rollback()
 
@@ -219,4 +217,11 @@ class DB:
         self.cur.execute("INSERT INTO link(title, url, parent_link) VALUES (?, ?, ?)", (title, url, parent_link))
         self.conn.commit()
 
+    def test(self):
+        self.cur.execute("SELECT * FROM data_type")
+        while True:
+            row = self.cur.fetchone()
+            if row is None:
+                break
 
+            print("Data type: " + str(row[0]))

@@ -46,6 +46,7 @@ if __name__ == "__main__":
     # Test DB insert
     # db.insert(title="Ime strani", url="https://www.spletnastran.si")
     # db.insert(title="24 ur", url="https://www.24ur.com", parent_link=1)
+    db.test()
 
     starting_urls = ["gov.si", "evem.gov.si", "e-uprava.gov.si", "e-prostor.gov.si"]
     frontier = Frontier(starting_urls)
