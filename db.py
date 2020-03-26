@@ -181,7 +181,6 @@ class DB:
         self.cur.execute(drop_idx_link_to_page)
         self.cur.execute(create_idx_link_to_page)
 
-        # sqlite does not allow adding constraints to existing tables
         self.cur.execute(fk_image)
         self.cur.execute(fk_link_page)
         self.cur.execute(fk_link_page_1)
@@ -198,7 +197,10 @@ class DB:
     def connect(self):
         if not self.conn:
             try:
-                self.conn = psycopg2.connect(host="localhost", user="user",
+                # Docker:
+                # self.conn = psycopg2.connect(host="localhost", user="user",  password="SecretPassword")
+                # Local:
+                self.conn = psycopg2.connect(host="localhost", user="databaseuser", dbname="mydb",
                                              password="SecretPassword")
                 self.cur = self.conn.cursor()
 
