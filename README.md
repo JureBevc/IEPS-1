@@ -3,13 +3,26 @@
 
 Repository for IEPS assignment 1
 
-
-##### https://docs.python-guide.org/dev/virtualenvs/
+### TODO
+- [ ] Extend the database with a hash or compare exact HTML code @lukatavcer
+    - 10 bonus points for locally sensitive hashing
+- [ ] Check if duplicate exist
+    - check already parsed urls
+    - check urls in frontier
+    - check by html content hash
+- [ ] Fetch and check robots.txt
+- [ ] Respect 5 sec request rule (not only domain, IP too)
+- [ ] Include links from href attributes and onclick JS events
+- [ ] Detect images on a web page
+#
+#### Virtual environment
+https://docs.python-guide.org/dev/virtualenvs/
 1) create virtualenv
 2) activate virtualenv ```source venv/bin/activate```
 3) ```pip install -r requirements.txt```
 
-### Running the database
+#
+#### Database
 
 The database can run in a docker container with the command \
 ```docker run --name postgresql-wier -e POSTGRES_PASSWORD=SecretPassword -e POSTGRES_USER=user -v $PWD/init-scripts:/docker-entrypoint-initdb.d  -p 5432:5432 -d postgres:9``` \

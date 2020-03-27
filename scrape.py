@@ -44,21 +44,23 @@ if __name__ == "__main__":
     db.create()
 
     # Test DB insert
-    db.create_site(domain="24ur.com", robots_content="test robots content", sitemap_content="some test sitemap content")
+    # db.create_site(domain="24ur.com", robots_content="test robots content", sitemap_content="some test sitemap content")
 
     # Select all
     db.test()
-#
+
     starting_urls = ["gov.si", "evem.gov.si", "e-uprava.gov.si", "e-prostor.gov.si"]
     frontier = Frontier(starting_urls)
 
+    # Number of workers can be passed as the parameter
     number_of_crawlers = int(sys.argv[1]) if len(sys.argv) > 1 else 1
     print(f"Creating {number_of_crawlers} crawlers")
     for i in range(number_of_crawlers):
+        # TODO make them use separate db connection or cursor, maybe that's threading problem
         thread = threading.Thread(target=crawler, args=(i, db, frontier))
         thread.start()
 
     # Drop all tables from the database
-    db.drop_all_tables()
+    # db.drop_all_tables()
 
     db.close()
