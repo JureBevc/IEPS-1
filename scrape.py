@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
     # Select all
     db.test()
-
+#
     starting_urls = ["gov.si", "evem.gov.si", "e-uprava.gov.si", "e-prostor.gov.si"]
     frontier = Frontier(starting_urls)
 
@@ -57,4 +57,8 @@ if __name__ == "__main__":
     for i in range(number_of_crawlers):
         thread = threading.Thread(target=crawler, args=(i, db, frontier))
         thread.start()
+
+    # Drop all tables from the database
+    db.drop_all_tables()
+
     db.close()

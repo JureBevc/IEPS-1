@@ -18,6 +18,11 @@ class DB:
         self.cur.execute(open("db/crawldb.sql", "r").read())
         self.conn.commit()
 
+    def drop_all_tables(self):
+        print("Drop all tables in database '{}'".format(self.dbname))
+        self.cur.execute("DROP SCHEMA crawldb CASCADE;")
+        self.conn.commit()
+
     def connect(self):
         if not self.conn:
             try:
@@ -54,10 +59,11 @@ class DB:
             print(f"  Site id: {site_id}")
         except Exception as e:
             print(e)
+            self.conn.rollback()
         return None
 
     def test(self):
-        self.cur.execute("SELECT * FROM crawldb.data_type")
+        self.cur.execute("SELECT * FROM data_type")
         while True:
             row = self.cur.fetchone()
             if row is None:

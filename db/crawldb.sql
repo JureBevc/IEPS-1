@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS crawldb.page_type (
 
 CREATE TABLE IF NOT EXISTS crawldb.site ( 
 	id                   serial  NOT NULL,
-	"domain"             varchar(500)  ,
+	"domain"             varchar(500)   UNIQUE,
 	robots_content       text  ,
 	sitemap_content      text  ,
 	CONSTRAINT pk_site_id PRIMARY KEY ( id )
