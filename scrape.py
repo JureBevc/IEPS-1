@@ -5,7 +5,7 @@ import sys
 import threading
 import page_parser
 from frontier import Frontier
-from db import DB
+from db.db import DB
 
 
 def crawler(crawler_id, database, front):
@@ -38,14 +38,15 @@ def crawler(crawler_id, database, front):
 
 
 if __name__ == "__main__":
-    print("Init DB")
-    db = DB("scrape.sqlite")
+    db = DB(dbname="crawldb")
 
-    # Used only the first time to create tables
+    # Create tables from db/crawldb.sql
     db.create()
+
     # Test DB insert
-    # db.insert(title="Ime strani", url="https://www.spletnastran.si")
-    # db.insert(title="24 ur", url="https://www.24ur.com", parent_link=1)
+    db.create_site(domain="24ur.com", robots_content="test robots content", sitemap_content="some test sitemap content")
+
+    # Select all
     db.test()
 
     starting_urls = ["gov.si", "evem.gov.si", "e-uprava.gov.si", "e-prostor.gov.si"]

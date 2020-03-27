@@ -1,2 +1,5 @@
 selenium
 url-normalize
+psycopg2
+urllib3
+six
