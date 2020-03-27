@@ -44,10 +44,12 @@ if __name__ == "__main__":
     db.create()
 
     # Test DB insert
-    # db.create_site(domain="24ur.com", robots_content="test robots content", sitemap_content="some test sitemap content")
+    site_id = db.create_site(domain="24ur.com", robots_content="test robots content", sitemap_content="some test sitemap content")
+    db.create_page(site_id=site_id, page_type_code="HTML", url="24ur.com", html_content=None, http_status_code=200, accessed_time=None)
 
     # Select all
-    db.test()
+    db.get_types()
+    db.set_page_type(page_id=1, t="FRONTIER")
 
     starting_urls = ["gov.si", "evem.gov.si", "e-uprava.gov.si", "e-prostor.gov.si"]
     frontier = Frontier(starting_urls)

@@ -1,3 +1,4 @@
 .idea
 /geckodriver.log
 db/db_settings.py
+*.log

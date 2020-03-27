@@ -1,5 +1,10 @@
+from datetime import datetime
+
 import psycopg2
 import db.db_settings as db_settings
+from logger import get_logger
+
+logger = get_logger("db")
 
 
 class DB:
@@ -14,12 +19,12 @@ class DB:
         self.connect()
 
     def create(self):
-        print("Import database '{}'".format(self.dbname))
+        logger.info("Import database '{}'".format(self.dbname))
         self.cur.execute(open("db/crawldb.sql", "r").read())
         self.conn.commit()
 
     def drop_all_tables(self):
-        print("Drop all tables in database '{}'".format(self.dbname))
+        logger.info("Drop all tables in database '{}'".format(self.dbname))
         self.cur.execute("DROP SCHEMA crawldb CASCADE;")
         self.conn.commit()
 
@@ -37,36 +42,84 @@ class DB:
                     options="-c search_path=crawldb"
                 )
                 self.cur = self.conn.cursor()
-                print("Database '{}' connection established".format(self.dbname))
+                logger.info("Database '{}' connection established".format(self.dbname))
 
             except psycopg2.Error as e:
                 if self.conn:
                     self.conn.rollback()
 
-                print("Error {}:".format(e.args[0]))
+                logger.error(e.args[0])
 
     def close(self):
         if self.conn:
             self.conn.close()
 
     def create_site(self, domain=None, robots_content=None, sitemap_content=None):
-        print("Insert site: {}".format(domain))
+        logger.info("Insert site: {}".format(domain))
         try:
             query = "INSERT INTO site(domain, robots_content, sitemap_content) VALUES(%s, %s, %s) RETURNING id;"
             self.cur.execute(query, (domain, robots_content, sitemap_content))
             self.conn.commit()
             site_id = self.cur.fetchone()[0]
-            print(f"  Site id: {site_id}")
+            logger.info(f"    Site id: {site_id}")
+            return site_id
         except Exception as e:
-            print(e)
+            logger.error(e)
             self.conn.rollback()
         return None
 
-    def test(self):
+    def create_page(self, site_id=None, page_type_code=None, url=None, html_content=None, http_status_code=None, accessed_time=None):
+        if not accessed_time:
+            accessed_time = datetime.now()
+
+        # TODO check for duplicates here
+        logger.info("Insert page: {}".format(url))
+        try:
+            query = """
+                INSERT INTO page(site_id, page_type_code, url, html_content, http_status_code, accessed_time) 
+                VALUES(%s, %s, %s, %s, %s, %s) RETURNING id;
+            """
+            self.cur.execute(query, (site_id, page_type_code, url, html_content, http_status_code, accessed_time))
+            self.conn.commit()
+            page_id = self.cur.fetchone()[0]
+            logger.info(f"    Page id: {page_id}")
+        except Exception as e:
+            logger.error(e)
+            self.conn.rollback()
+        return None
+
+    def set_page_type(self, page_id=None, t=None):
+        # HTML
+        # BINARY
+        # DUPLICATE
+        # FRONTIER
+        try:
+            query = "UPDATE page SET page_type_code = %s WHERE id = %s;"
+            self.cur.execute(query, (t, page_id))
+            self.conn.commit()
+            return self.cur.rowcount
+        except Exception as e:
+            logger.error(e)
+            self.conn.rollback()
+        return None
+
+    def create_link(self, from_page=None, to_page=None):
+        logger.info("Insert link from {} to {}".format(from_page, to_page))
+        try:
+            query = "INSERT INTO link(from_page, to_page) VALUES(%s, %s);"
+            self.cur.execute(query, (from_page, to_page))
+            self.conn.commit()
+            return True
+        except Exception as e:
+            logger.error(e)
+            self.conn.rollback()
+        return None
+
+    def get_types(self):
         self.cur.execute("SELECT * FROM data_type")
         while True:
             row = self.cur.fetchone()
             if row is None:
                 break
 
-            print("Data type: " + str(row[0]))
+            logger.info("Data type: " + str(row[0]))
