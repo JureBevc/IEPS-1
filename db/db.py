@@ -11,7 +11,7 @@ class DB:
     conn = None
     cur = None
 
-    def __init__(self, dbname):
+    def __init__(self, dbname=None):
         self.dbname = dbname if dbname else db_settings.DB_NAME
         self.host = db_settings.DB_HOST
         self.user = db_settings.DB_USER
@@ -29,7 +29,7 @@ class DB:
         self.conn.commit()
 
     def connect(self):
-        if not self.conn:
+        if not self.conn or self.conn.closed == 1:
             try:
                 # Docker:
                 # self.conn = psycopg2.connect(host="localhost", user="user",  password="SecretPassword")
@@ -49,20 +49,72 @@ class DB:
                     self.conn.rollback()
 
                 logger.error(e.args[0])
+                return False
+
+        return True
 
     def close(self):
         if self.conn:
             self.conn.close()
 
+    def execute(self, query, values):
+        retries = 0
+
+        while retries < 5:
+            try:
+                self.cur.execute(query, values)
+                return True
+            except Exception as e:
+                # Try to reestablish db connection
+                logger.error(e)
+                try:
+                    self.cur.close()
+                    self.cur = self.conn.cursor()
+                except Exception as e:
+                    logger.error(e)
+                    self.conn.close()
+                    self.connect()
+
+                retries += 1
+
+        # Tried to execute query 5 times, without success
+        logger.error(f"Failed to execute query {query}, number of retries: {retries}.")
+        return False
+
     def create_site(self, domain=None, robots_content=None, sitemap_content=None):
-        logger.info("Insert site: {}".format(domain))
+        logger.info("Create site: {}".format(domain))
         try:
             query = "INSERT INTO site(domain, robots_content, sitemap_content) VALUES(%s, %s, %s) RETURNING id;"
-            self.cur.execute(query, (domain, robots_content, sitemap_content))
-            self.conn.commit()
-            site_id = self.cur.fetchone()[0]
-            logger.info(f"    Site id: {site_id}")
-            return site_id
+            values = (domain, robots_content, sitemap_content)
+            executed = self.execute(query, values)
+            if executed:
+                self.conn.commit()
+                site_id = self.cur.fetchone()[0]
+                logger.info(f"    Site id: {site_id}")
+                return site_id
+        except Exception as e:
+            logger.error(e)
+            self.conn.rollback()
+        return None
+
+    def get_site(self, domain=None):
+        try:
+            query = "SELECT id FROM site WHERE domain = %s;"
+            executed = self.execute(query, (domain,))
+            if executed:
+                site_id = self.cur.fetchone()
+                return site_id
+        except Exception as e:
+            logger.error(e)
+            self.conn.rollback()
+
+    def get_page(self, url=None):
+        try:
+            query = "SELECT id FROM page WHERE url = %s;"
+            executed = self.execute(query, (url,))
+            if executed:
+                page_id = self.cur.fetchone()
+                return page_id
         except Exception as e:
             logger.error(e)
             self.conn.rollback()
@@ -73,16 +125,19 @@ class DB:
             accessed_time = datetime.now()
 
         # TODO check for duplicates here
-        logger.info("Insert page: {}".format(url))
+        logger.info("Create page: {}".format(url))
         try:
             query = """
                 INSERT INTO page(site_id, page_type_code, url, html_content, http_status_code, accessed_time) 
                 VALUES(%s, %s, %s, %s, %s, %s) RETURNING id;
             """
-            self.cur.execute(query, (site_id, page_type_code, url, html_content, http_status_code, accessed_time))
-            self.conn.commit()
-            page_id = self.cur.fetchone()[0]
-            logger.info(f"    Page id: {page_id}")
+            values = (site_id, page_type_code, url, html_content, http_status_code, accessed_time)
+            executed = self.execute(query, values)
+            if executed:
+                self.conn.commit()
+                page_id = self.cur.fetchone()[0]
+                logger.info(f"    Page id: {page_id}")
+                return page_id
         except Exception as e:
             logger.error(e)
             self.conn.rollback()
