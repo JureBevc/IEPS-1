@@ -1,4 +1,5 @@
 from url_normalize import url_normalize
+from urllib.parse import urlparse
 
 
 def canonical(url):
@@ -14,7 +15,29 @@ def canonical(url):
         url = url[4:]
     if url.endswith("/"):
         url = url[:-1]
-    return url
+    return url.strip()
+
+
+def get_domain(url):
+    parsed_uri = urlparse(url)
+    result = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
+    return canonical(result)
+
+
+def parse_robots(domain, robots_txt):
+    disallowed = []
+    all_agents = False
+    user_agent = "User-agent:"
+    disallow = "Disallow:"
+    for line in robots_txt.split("\n"):
+        if line.startswith(user_agent):
+            if line.split(user_agent)[1].strip() == "*":
+                all_agents = True
+            else:
+                all_agents = False
+        if all_agents and line.startswith(disallow):
+            disallowed.append(domain + line.split(disallow)[1].strip())
+    return disallowed
 
 
 def parse(browser):

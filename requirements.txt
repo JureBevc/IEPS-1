@@ -3,3 +3,6 @@ url-normalize
 psycopg2
 urllib3
 six
+colorlog
+selenium-requests
+requests
