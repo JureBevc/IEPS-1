@@ -89,10 +89,10 @@ class DB:
             executed = self.execute(query, values)
             if executed:
                 self.conn.commit()
-                site_id = self.cur.fetchone()
-                if site_id:
-                    logger.info(f"    Site id: {site_id}")
-                    return site_id[0]
+                res = self.cur.fetchone()
+                if res:
+                    logger.info(f"    Site id: {res[0]}")
+                    return res[0]
         except Exception as e:
             logger.error(e)
             self.conn.rollback()
@@ -100,27 +100,30 @@ class DB:
 
     def get_site(self, domain=None):
         try:
-            query = "SELECT id FROM site WHERE domain = %s;"
+            query = "SELECT id, robots_content FROM site WHERE domain = %s;"
             executed = self.execute(query, (domain,))
             if executed:
-                site_id = self.cur.fetchone()
-                if site_id:
-                    return site_id[0]
+                res = self.cur.fetchone()
+                if res:
+                    return res[0], res[1]
         except Exception as e:
             logger.error(e)
             self.conn.rollback()
+
+        return None, None
 
     def get_page(self, url=None):
         try:
             query = "SELECT id FROM page WHERE url = %s;"
             executed = self.execute(query, (url,))
             if executed:
-                page_id = self.cur.fetchone()
-                if page_id:
-                    return page_id[0]
+                res = self.cur.fetchone()
+                if res:
+                    return res[0]
         except Exception as e:
             logger.error(e)
             self.conn.rollback()
+
         return None
 
     def create_page(self, site_id=None, page_type_code=None, url=None, html_content=None, http_status_code=None, accessed_time=None):
@@ -138,9 +141,10 @@ class DB:
             executed = self.execute(query, values)
             if executed:
                 self.conn.commit()
-                page_id = self.cur.fetchone()[0]
-                logger.info(f"    Page id: {page_id}")
-                return page_id
+                res = self.cur.fetchone()
+                if res:
+                    logger.info(f"    Page id: {res[0]}")
+                    return res[0]
         except Exception as e:
             logger.error(e)
             self.conn.rollback()

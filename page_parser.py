@@ -1,5 +1,5 @@
 from url_normalize import url_normalize
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 
 
 def canonical(url):
@@ -43,7 +43,10 @@ def parse_robots(base_url, robots_txt):
             else:
                 all_agents = False
         if all_agents and line.startswith(disallow):
-            disallowed.append(base_url + line.split(disallow)[1].strip())
+            disallow = line.split(disallow)[1].strip()
+            disallow = urljoin(base_url, disallow)
+            # TODO url canonicalize, add trailing slash, etc...
+            disallowed.append(disallow)
     return disallowed
 
 
@@ -53,6 +56,7 @@ def parse(browser):
     title = browser.title
 
     # TODO also find elements with onClick links?
+    # Only need to check if onClick tag has: location.href or document.location
     links = browser.find_elements_by_tag_name("a")
     for link in links:
         ref = link.get_attribute("href")

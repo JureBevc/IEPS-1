@@ -1,3 +1,5 @@
+from urllib.parse import urljoin
+
 from selenium import webdriver
 from seleniumrequests import Firefox
 from selenium.webdriver.firefox.options import Options
@@ -24,13 +26,20 @@ def crawler(crawler_id, database, front):
         domain = page_parser.get_domain(url)
         base_url = page_parser.get_base_url(url)
 
-        # Get and parse robots.txt
-        robots_url = base_url + "robots.txt"
-        res = requests.get(robots_url)
+        # Check if site with current domain already exists, if not create site
+        site_id, robots_content = db.get_site(domain=domain)
+        if not site_id:
+            # Get and parse robots.txt
+            robots_url = urljoin(base_url, "robots.txt")
+            res = requests.get(robots_url)
 
-        if res.ok:
-            disallowed_urls = page_parser.parse_robots(base_url, res.text)
-            front.add_disallowed_urls(disallowed_urls)
+            if res.ok:
+                robots_content = res.text
+
+            site_id = db.create_site(domain=domain, robots_content=robots_content, sitemap_content=None)
+
+        disallowed_urls = page_parser.parse_robots(base_url, robots_content)
+        front.add_disallowed_urls(disallowed_urls)
 
         # Get and parse
         if not front.allowed(url):
@@ -62,10 +71,7 @@ def crawler(crawler_id, database, front):
                       f"\n  --images found: {len(img_urls)}"
         print(log_message)
 
-        # Check if site with current domain already exists, if not create site
-        site_id = db.get_site(domain=domain)
-        if not site_id:
-            site_id = db.create_site(domain=domain, robots_content=None, sitemap_content=None)
+
 
         # Check if page with current url already exists, if not create page
         page_id = db.get_page(url=url)
