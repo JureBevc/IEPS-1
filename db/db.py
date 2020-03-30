@@ -89,9 +89,10 @@ class DB:
             executed = self.execute(query, values)
             if executed:
                 self.conn.commit()
-                site_id = self.cur.fetchone()[0]
-                logger.info(f"    Site id: {site_id}")
-                return site_id
+                site_id = self.cur.fetchone()
+                if site_id:
+                    logger.info(f"    Site id: {site_id}")
+                    return site_id[0]
         except Exception as e:
             logger.error(e)
             self.conn.rollback()
@@ -103,7 +104,8 @@ class DB:
             executed = self.execute(query, (domain,))
             if executed:
                 site_id = self.cur.fetchone()
-                return site_id
+                if site_id:
+                    return site_id[0]
         except Exception as e:
             logger.error(e)
             self.conn.rollback()
@@ -114,7 +116,8 @@ class DB:
             executed = self.execute(query, (url,))
             if executed:
                 page_id = self.cur.fetchone()
-                return page_id
+                if page_id:
+                    return page_id[0]
         except Exception as e:
             logger.error(e)
             self.conn.rollback()
