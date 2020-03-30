@@ -28,6 +28,11 @@ class DB:
         self.cur.execute("DROP SCHEMA crawldb CASCADE;")
         self.conn.commit()
 
+    def migrate(self, file):
+        logger.info("Migrate database '{}' with file: {}".format(self.dbname, file))
+        self.cur.execute(open(f"./{file}", "r").read())
+        self.conn.commit()
+
     def connect(self):
         if not self.conn or self.conn.closed == 1:
             try:

@@ -71,8 +71,6 @@ def crawler(crawler_id, database, front):
                       f"\n  --images found: {len(img_urls)}"
         print(log_message)
 
-
-
         # Check if page with current url already exists, if not create page
         page_id = db.get_page(url=url)
         if not page_id:

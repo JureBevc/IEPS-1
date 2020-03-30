@@ -28,7 +28,7 @@ def get_domain(url):
 
 def get_base_url(url):
     parsed_uri = urlparse(url)
-    return '{uri.scheme}://{uri.hostname}/'.format(uri=parsed_uri)
+    return '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
 
 
 def parse_robots(base_url, robots_txt):
