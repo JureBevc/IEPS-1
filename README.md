@@ -4,16 +4,16 @@
 Repository for IEPS assignment 1
 
 ### TODO
-- [ ] Extend the database with a hash or compare exact HTML code @lukatavcer
-    - 10 bonus points for locally sensitive hashing
-- [ ] Check if duplicate exist
+- [x] Extend the database with a hash or compare exact HTML code @lukatavcer
+- [ ] 10 bonus points for locally sensitive hashing
+- [ ] Include links from href attributes and onclick JS events
+- [ ] Detect images on a web page
+- [x] Check if duplicate exist
     - check already parsed urls
     - check urls in frontier
     - check by html content hash
-- [ ] Fetch and check robots.txt
-- [ ] Respect 5 sec request rule (not only domain, IP too)
-- [ ] Include links from href attributes and onclick JS events
-- [ ] Detect images on a web page
+- [x] Fetch and check robots.txt
+- [x] Respect 5 sec request rule (not only domain, IP too)
 #
 #### Virtual environment
 https://docs.python-guide.org/dev/virtualenvs/
