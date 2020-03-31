@@ -140,6 +140,21 @@ class DB:
 
         return None, None
 
+    def get_all_sites(self, has_robots=False):
+        where_robots = ""
+        if has_robots:
+            where_robots = " WHERE robots_content IS NOT NULL"
+        query = f"SELECT id, robots_content FROM site{where_robots};"
+        try:
+            executed = self.execute(query, ())
+            if executed:
+                return self.cur.fetchall()
+        except Exception as e:
+            self.logger.error(e)
+            self.conn.rollback()
+
+        return []
+
     def get_page(self, url=None):
         try:
             query = "SELECT id, page_type_code FROM page WHERE url = %s;"

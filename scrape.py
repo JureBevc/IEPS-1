@@ -9,6 +9,7 @@ import socket
 
 import sys
 import threading
+import urllib.robotparser
 import page_parser
 from frontier import Frontier
 from db.database import DB
@@ -48,8 +49,9 @@ class Crawler:
 
     def create_site(self, base_url, domain):
         db = self.db
-        front = self.front
+        add_robots_parser = True
         robots_content = None
+        site_maps = None
 
         # Site doesn't exists, we can safely fetch robots.txt file without checking any time limit
         # Get and parse robots.txt
@@ -57,25 +59,28 @@ class Crawler:
             print("no base")
         if not domain:
             print("no domain")
+
         robots_url = urljoin(base_url, "robots.txt")
+        rp = urllib.robotparser.RobotFileParser()
+        rp.set_url(robots_url)
         try:
-            res = requests.get(robots_url)
-            if res.ok and res.text:
-                robots_content = res.text
+            rp.read()
+            if rp.default_entry:
+                robots_content = str(rp.default_entry)
+
+            # TODO make use of site maps
+            if rp.site_maps():
+                site_maps = "\n".join(rp.site_maps())
+
         except Exception as e:
-            self.logger.error(f"Connection error for: {robots_url}\n {e}".encode("UTF-8"))
+            self.logger.warning(e)
+            add_robots_parser = False
 
-        # TODO also fetch sitemap
-        site_id = db.create_site(domain=domain, robots_content=robots_content, sitemap_content=None)
+        site_id = db.create_site(domain=domain, robots_content=robots_content, sitemap_content=site_maps)
 
-        if robots_content:
-            disallowed_urls = page_parser.parse_robots(base_url, robots_content)
-
-            # Add new disallowed urls to the frontier's disallowed urls
-            front.add_disallowed_urls(disallowed_urls)
-
-            # Add new disallowed urls to the database
-            db.create_disallowed_urls(site_id, disallowed_urls)
+        # Add robotsparser to the frontier's site robot parsers
+        if add_robots_parser:
+            self.front.add_site_robots(site_id=site_id, rp=rp)
 
         return site_id
 
@@ -86,7 +91,7 @@ class Crawler:
 
         options = Options()
         options.headless = True
-        browser = Firefox(options=options, log_path=os.path.join(PROJECT_ROOT, 'logs/geckodriver.log'))
+        browser = Firefox(options=options, service_log_path=os.path.join(PROJECT_ROOT, 'logs/geckodriver.log'))
 
         url = front.get_url()
         while url is not None:
@@ -102,14 +107,14 @@ class Crawler:
                 site_id = self.create_site(base_url, domain)
 
             # Check if url is allowed (it is not inside frontier's disallowed urls)
-            if not front.allowed(url):
+            if not front.can_fetch(site_id, url):
                 self.logger.info(f"Skip not allowed URL: {url}")
                 # page_type = "DISALLOWED"
                 url = front.get_url()
                 continue
 
             # Fetch current page from the database FRONTIER
-            if url == "https://e-uprava.gov.si/":
+            if url.find("eprostor.si") >= 0:
                 print(url)
 
             page_id, page_type = db.get_page(url=url)
@@ -144,6 +149,8 @@ class Crawler:
             try:
                 website_ip = socket.gethostbyname(domain)
             except Exception as e:
+                # TODO set page as can't resolve domain name
+                db.set_page_type(page_id, "DOMAIN_ERROR")
                 self.logger.error(e)
                 continue
 
@@ -204,6 +211,9 @@ class Crawler:
             )
 
             for new_url in urls:
+                if new_url.find("eprostor.si") >= 0:
+                    print(url)
+
                 # Create canonical version of the url
                 new_url = page_parser.canonicalize(base_url, new_url)
 
@@ -217,7 +227,7 @@ class Crawler:
 
                 # Check if domain matches current site_id
                 if new_url_domain == domain:
-                    if not front.allowed(new_url):
+                    if not front.can_fetch(existing_site_id, new_url):
                         continue
                 else:
                     # if not try to fetch site with this domain from the database, if it exists,
@@ -267,6 +277,15 @@ class Crawler:
 def main():
     db = DB()
 
+    # Get every site's robots.txt and parse it and store it to site_robots dictionary in the frontier
+    site_robots = dict()
+
+    for site in db.get_all_sites(has_robots=True):
+        robots_content = site[1]
+        rp = urllib.robotparser.RobotFileParser()
+        rp.parse(robots_content.split("\n"))
+        site_robots[site[0]] = rp
+
     starting_urls = ["https://www.gov.si/", "http://evem.gov.si/", "https://e-uprava.gov.si/", "https://www.e-prostor.gov.si/"]
 
     # Check if url was already processed
@@ -284,7 +303,7 @@ def main():
 
     db.close()
 
-    frontier = Frontier(starting_urls, disallowed)
+    frontier = Frontier(starting_urls, disallowed, site_robots)
 
     # Number of workers can be passed as the parameter
     number_of_crawlers = int(sys.argv[1]) if len(sys.argv) > 1 else 1

@@ -1,6 +1,7 @@
 selenium
 url-normalize
-psycopg2
+psycopg2-binary
+# psycopg2
 urllib3
 six
 colorlog

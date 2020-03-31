@@ -82,7 +82,7 @@ def parse(browser):
     for onclick in soup.body.find_all(attrs={'onclick': True}):
         ref = onclick.attrs.get('onclick').strip()
         found = ref.find("href=")
-        if found:
+        if found >= 0:
             url = ref[found+5:].strip().strip("\'").strip().strip("\"").strip()
             urls.append(url)
             continue
