@@ -53,6 +53,10 @@ class Crawler:
 
         # Site doesn't exists, we can safely fetch robots.txt file without checking any time limit
         # Get and parse robots.txt
+        if not base_url:
+            print("no base")
+        if not domain:
+            print("no domain")
         robots_url = urljoin(base_url, "robots.txt")
         try:
             res = requests.get(robots_url)
@@ -146,6 +150,10 @@ class Crawler:
                     front.add_url(url)
                     url = front.get_url()
                     continue
+
+            # TODO first do HEAD request to get page headers, maybe see if url is file etc...
+
+            # TODO make some minimal delay (1 sec then GET actual content)
 
             # Everything is okay.
             # Finally get and parse page
@@ -256,7 +264,7 @@ def main():
     starting_urls = ["https://www.gov.si/", "http://evem.gov.si/", "https://e-uprava.gov.si/", "https://www.e-prostor.gov.si/"]
 
     # Check if url was already processed
-    for url in starting_urls:
+    for url in starting_urls.copy():
         page, page_type = db.get_page(url)
         if page:
             starting_urls.remove(url)
@@ -266,7 +274,7 @@ def main():
 
     # Get pages with type FRONTIER to fill the frontier
     frontier_pages = db.get_pages_by_type(page_type_code="FRONTIER")
-    starting_urls.extend(frontier_pages)
+    starting_urls.extend([p[0] for p in frontier_pages])
 
     db.close()
 

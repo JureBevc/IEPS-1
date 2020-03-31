@@ -1,4 +1,4 @@
-from url_normalize import url_normalize
+from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urljoin, urldefrag
 import urltools
 
@@ -34,24 +34,6 @@ def canonicalize(base_url, url):
         url += "/"
 
     return url
-
-
-def canonical(url):
-    url = url.split("?")[0]
-    url = url.split("#")[0]
-    url = url_normalize(url)
-
-    # TODO also check if url is relative example: '/assets/img/test.jpg' ?
-
-    if url.startswith("http://"):
-        url = url[7:]
-    if url.startswith("https://"):
-        url = url[8:]
-    if url.startswith("www."):
-        url = url[4:]
-    if url.endswith("/"):
-        url = url[:-1]
-    return url.strip()
 
 
 def get_domain(url):
@@ -90,7 +72,24 @@ def parse(browser):
     img_urls = []
     title = browser.title
 
-    # TODO also find elements with onClick links?
+    html = browser.page_source
+
+    # Create beautiful soup instance to find onclick links
+    soup = BeautifulSoup(html, 'html.parser')
+    for onclick in soup.body.find_all(attrs={'onclick': True}):
+        ref = onclick.attrs.get('onclick').strip()
+        found = ref.find("href=")
+        if found:
+            url = ref[found+5:].strip().strip("\'").strip().strip("\"").strip()
+            urls.append(url)
+            continue
+
+        found = onclick.find("location=")
+        if found:
+            url = ref[found+9:].strip().strip("\'").strip().strip("\"").strip()
+            urls.append(url)
+            continue
+
     # Only need to check if onClick tag has: location.href or document.location
     links = browser.find_elements_by_tag_name("a")
     for link in links:
