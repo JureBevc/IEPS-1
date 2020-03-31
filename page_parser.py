@@ -1,5 +1,32 @@
 from url_normalize import url_normalize
 from urllib.parse import urlparse, urljoin
+import urltools
+
+
+def canonicalize(base_url, url):
+    """
+        this is a canonical() copy, just for the reference, so I (Luka) don't delete your code.
+        Inspiration taken from:
+            https://stackoverflow.com/questions/10584861/canonicalize-normalize-a-url
+
+        Good library:
+            https://github.com/rbaier/python-urltools
+    """
+    # Fix relative urls
+    url = urljoin(base_url, url)
+
+    # lowercasing the scheme and hostname
+    # convert hostname to IDN format
+    # taking out default port if present :80
+    # collapsing the path (./, ../, etc)
+    # removing the last character in the hostname if it is ‘.’
+    # unquoting any % escaped characters (where possible)
+    # sort query parameters
+    url = urltools.normalize(url)
+
+    # TODO add trailing slash?
+
+    return url
 
 
 def canonical(url):
@@ -21,9 +48,8 @@ def canonical(url):
 
 
 def get_domain(url):
-    parsed_uri = urlparse(url)
-    result = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
-    return canonical(result)
+    parsed_uri = urltools.split(url)
+    return parsed_uri.netloc
 
 
 def get_base_url(url):

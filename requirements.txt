@@ -6,3 +6,4 @@ six
 colorlog
 selenium-requests
 requests
+urltools

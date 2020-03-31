@@ -1,40 +1,52 @@
 from datetime import datetime
 
 import psycopg2
+from psycopg2.pool import ThreadedConnectionPool
+
 import db.db_settings as db_settings
 from logger import get_logger
 
-logger = get_logger("db")
-
 
 class DB:
-    conn = None
-    cur = None
 
-    def __init__(self, dbname=None):
+    def __init__(self, dbname=None, logger=None):
+        if not logger:
+            logger = get_logger("db")
+
+        self.logger = logger
         self.dbname = dbname if dbname else db_settings.DB_NAME
         self.host = db_settings.DB_HOST
         self.user = db_settings.DB_USER
         self.password = db_settings.DB_PASSWORD
+
+        self.conn = None
+        self.cur = None
         self.connect()
 
     def create(self):
-        logger.info("Import database '{}'".format(self.dbname))
+        self.logger.info("Import database '{}'".format(self.dbname))
         self.cur.execute(open("db/crawldb.sql", "r").read())
         self.conn.commit()
 
     def drop_all_tables(self):
-        logger.info("Drop all tables in database '{}'".format(self.dbname))
+        self.logger.info("Drop all tables in database '{}'".format(self.dbname))
         self.cur.execute("DROP SCHEMA crawldb CASCADE;")
         self.conn.commit()
 
     def migrate(self, file):
-        logger.info("Migrate database '{}' with file: {}".format(self.dbname, file))
+        self.logger.info("Migrate database '{}' with file: {}".format(self.dbname, file))
         self.cur.execute(open(f"./{file}", "r").read())
         self.conn.commit()
 
     def connect(self):
+
         if not self.conn or self.conn.closed == 1:
+
+            # Create threaded connection pool
+            number_of_connections = 1
+            # DSN = f"postgresql://{self.user}:{self.password}@{self.host}/{self.dbname}"
+            # tcp = ThreadedConnectionPool(1, number_of_connections, DSN)
+
             try:
                 # Docker:
                 # self.conn = psycopg2.connect(host="localhost", user="user",  password="SecretPassword")
@@ -47,47 +59,52 @@ class DB:
                     options="-c search_path=crawldb"
                 )
                 self.cur = self.conn.cursor()
-                logger.info("Database '{}' connection established".format(self.dbname))
+                self.logger.info("Database '{}' connection established".format(self.dbname))
 
             except psycopg2.Error as e:
                 if self.conn:
                     self.conn.rollback()
 
-                logger.error(e.args[0])
+                self.logger.error(e.args[0])
                 return False
 
         return True
 
     def close(self):
+        self.logger.info("Close connection")
+        if self.cur:
+            self.cur.close()
+
         if self.conn:
             self.conn.close()
 
     def execute(self, query, values):
         retries = 0
 
+        # If transaction can be executed they can be commited, else it must be rollback
         while retries < 5:
             try:
                 self.cur.execute(query, values)
                 return True
             except Exception as e:
                 # Try to reestablish db connection
-                logger.error(e)
+                self.logger.error(e)
                 try:
                     self.cur.close()
                     self.cur = self.conn.cursor()
                 except Exception as e:
-                    logger.error(e)
+                    self.logger.error(e)
                     self.conn.close()
                     self.connect()
 
                 retries += 1
 
         # Tried to execute query 5 times, without success
-        logger.error(f"Failed to execute query {query}, number of retries: {retries}.")
+        self.logger.error(f"Failed to execute query {query}, number of retries: {retries}.")
         return False
 
     def create_site(self, domain=None, robots_content=None, sitemap_content=None):
-        logger.info("Create site: {}".format(domain))
+        self.logger.info("Create site: {}".format(domain))
         try:
             query = "INSERT INTO site(domain, robots_content, sitemap_content) VALUES(%s, %s, %s) RETURNING id;"
             values = (domain, robots_content, sitemap_content)
@@ -96,10 +113,10 @@ class DB:
                 self.conn.commit()
                 res = self.cur.fetchone()
                 if res:
-                    logger.info(f"    Site id: {res[0]}")
+                    self.logger.info(f"    Site id: {res[0]}")
                     return res[0]
         except Exception as e:
-            logger.error(e)
+            self.logger.error(e)
             self.conn.rollback()
         return None
 
@@ -112,7 +129,7 @@ class DB:
                 if res:
                     return res[0], res[1]
         except Exception as e:
-            logger.error(e)
+            self.logger.error(e)
             self.conn.rollback()
 
         return None, None
@@ -126,32 +143,46 @@ class DB:
                 if res:
                     return res[0]
         except Exception as e:
-            logger.error(e)
+            self.logger.error(e)
             self.conn.rollback()
 
         return None
 
-    def create_page(self, site_id=None, page_type_code=None, url=None, html_content=None, http_status_code=None, accessed_time=None):
+    def get_page_by_hash(self, html_content_hash=None):
+        try:
+            query = "SELECT id, site_id FROM page WHERE html_content_hash = %s;"
+            executed = self.execute(query, (html_content_hash,))
+            if executed:
+                res = self.cur.fetchone()
+                if res:
+                    return res[0], res[1]
+        except Exception as e:
+            self.logger.error(e)
+            self.conn.rollback()
+
+        return None, None
+
+    def create_page(self, site_id=None, page_type_code=None, url=None, html_content=None, http_status_code=None, accessed_time=None, html_content_hash=None):
         if not accessed_time:
             accessed_time = datetime.now()
 
         # TODO check for duplicates here
-        logger.info("Create page: {}".format(url))
+        self.logger.info("Create page: {}".format(url))
         try:
             query = """
-                INSERT INTO page(site_id, page_type_code, url, html_content, http_status_code, accessed_time) 
-                VALUES(%s, %s, %s, %s, %s, %s) RETURNING id;
+                INSERT INTO page(site_id, page_type_code, url, html_content, http_status_code, accessed_time, html_content_hash) 
+                VALUES(%s, %s, %s, %s, %s, %s, %s) RETURNING id;
             """
-            values = (site_id, page_type_code, url, html_content, http_status_code, accessed_time)
+            values = (site_id, page_type_code, url, html_content, http_status_code, accessed_time, html_content_hash)
             executed = self.execute(query, values)
             if executed:
                 self.conn.commit()
                 res = self.cur.fetchone()
                 if res:
-                    logger.info(f"    Page id: {res[0]}")
+                    self.logger.info(f"    Page id: {res[0]}")
                     return res[0]
         except Exception as e:
-            logger.error(e)
+            self.logger.error(e)
             self.conn.rollback()
         return None
 
@@ -166,21 +197,58 @@ class DB:
             self.conn.commit()
             return self.cur.rowcount
         except Exception as e:
-            logger.error(e)
+            self.logger.error(e)
             self.conn.rollback()
         return None
 
     def create_link(self, from_page=None, to_page=None):
-        logger.info("Insert link from {} to {}".format(from_page, to_page))
+        self.logger.info("Create link from {} to {}".format(from_page, to_page))
         try:
             query = "INSERT INTO link(from_page, to_page) VALUES(%s, %s);"
             self.cur.execute(query, (from_page, to_page))
             self.conn.commit()
             return True
         except Exception as e:
-            logger.error(e)
+            self.logger.error(e)
             self.conn.rollback()
         return None
+
+    def create_disallowed_url(self, site_id=None, url=None):
+        self.logger.info("Create disallowed url from site {} to {}".format(site_id, url))
+        try:
+            query = "INSERT INTO disallowed_url(site_id, url) VALUES(%s, %s) ON CONFLICT DO NOTHING;"
+            self.cur.execute(query, (site_id, url))
+            self.conn.commit()
+            return True
+        except Exception as e:
+            self.logger.error(e)
+            self.conn.rollback()
+        return None
+
+    def create_disallowed_urls(self, site_id=None, urls=None):
+        self.logger.info("Create {} disallowed urls from site {}".format(len(urls), site_id))
+        try:
+            for url in urls:
+                query = "INSERT INTO disallowed_url(site_id, url) VALUES(%s, %s) ON CONFLICT DO NOTHING;"
+                executed = self.execute(query, (site_id, url))
+                if executed:
+                    self.conn.commit()
+
+            return True
+        except Exception as e:
+            self.logger.error(e)
+            self.conn.rollback()
+        return None
+
+    def get_disallowed_urls(self):
+        self.cur.execute("SELECT url FROM disallowed_url")
+        disallowed_urls = self.cur.fetchall()
+        urls = list()
+
+        for url in disallowed_urls:
+            urls.append(url)
+
+        return urls
 
     def get_types(self):
         self.cur.execute("SELECT * FROM data_type")
@@ -189,4 +257,4 @@ class DB:
             if row is None:
                 break
 
-            logger.info("Data type: " + str(row[0]))
+            self.logger.info("Data type: " + str(row[0]))

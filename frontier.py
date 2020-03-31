@@ -1,13 +1,17 @@
 class Frontier:
-    url_queue = []
-    disallowed_urls = []
     request_history = {}
 
-    def __init__(self, starting_urls):
-        for url in starting_urls:
-            self.add_url(url)
+    def __init__(self, starting_urls=None, disallowed_urls=None):
+        if not starting_urls:
+            starting_urls = []
+        if not disallowed_urls:
+            disallowed_urls = []
+
+        self.disallowed_urls = disallowed_urls
+        self.url_queue = starting_urls
 
     def add_disallowed_urls(self, urls):
+        # TODO maybe use set instead of array
         for url in urls:
             if url not in self.disallowed_urls:
                 self.disallowed_urls.append(url)
@@ -16,10 +20,10 @@ class Frontier:
         return url not in self.disallowed_urls
 
     def add_url(self, url):
-        self.url_queue.insert(0, url)
+        self.url_queue.append(url)
 
     def get_url(self):
-        if len(self.url_queue) > 0:
-            return self.url_queue.pop()
+        if self.url_queue:
+            return self.url_queue.pop(0)
         else:
             return None

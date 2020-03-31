@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS crawldb.page (
 	id                   serial  NOT NULL,
 	site_id              integer  ,
 	page_type_code       varchar(20)  ,
-	url                  varchar(3000)   UNIQUE,
+	url                  varchar(3000)  ,
 	html_content         text  ,
 	http_status_code     integer  ,
 	accessed_time        timestamp  ,
