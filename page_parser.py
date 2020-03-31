@@ -63,7 +63,7 @@ def get_base_url(url):
 
 
 def parse_robots(base_url, robots_txt):
-    disallowed = []
+    disallowed_urls = []
     all_agents = False
     user_agent = "User-agent:"
     disallow = "Disallow:"
@@ -73,12 +73,12 @@ def parse_robots(base_url, robots_txt):
                 all_agents = True
             else:
                 all_agents = False
-        if all_agents and line.startswith(disallow):
-            disallow = line.split(disallow)[1].strip()
-            disallow = urljoin(base_url, disallow)
-            # TODO url canonicalize, add trailing slash, etc...
-            disallowed.append(disallow)
-    return disallowed
+        elif all_agents and line.startswith(disallow):
+            disallowed_url = line.split(disallow)[1].strip()
+            disallowed_url = canonicalize(base_url, disallowed_url)
+            disallowed_urls.append(disallowed_url)
+
+    return disallowed_urls
 
 
 def parse(browser):

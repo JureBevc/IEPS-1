@@ -85,12 +85,12 @@ class Crawler:
                     # Add new disallowed urls to the database
                     db.create_disallowed_urls(site_id, disallowed_urls)
 
-            # Check if url is allowed (is not inside disallowed urls)
+            # Check if url is allowed (it is not inside frontier's disallowed urls)
             if not front.allowed(url):
                 url = front.get_url()
                 continue
 
-            # Check if 5 seconds passed since last request to this IP
+            # Check if 5 seconds have passed since the last request to this IP
             website_ip = socket.gethostbyname(domain)
             if website_ip in front.request_history:
                 diff = time.time() - front.request_history[website_ip]
@@ -124,9 +124,10 @@ class Crawler:
                     url = front.get_url()
                     continue
 
-            if not page_type or page_type != "FRONTIER":
+            if page_type != "FRONTIER":
                 # I gues something went wrong, or some other crawler already finished this page (probably shouldn't have happened)
                 self.logger.error(f"Page {page_id} with url {url} is of type {page_type} but it should be 'FRONTIER'.")
+                # TODO no! should add page as duplicate
                 url = front.get_url()
                 continue
 
@@ -165,20 +166,18 @@ class Crawler:
 
             title, urls, img_urls = page_parser.parse(browser)
 
-            log_message = f"[{self.name}] Parsed {url}:" \
-                          f"\n  --Title: {title}" \
-                          f"\n  --urls found: {len(urls)}" \
-                          f"\n  --images found: {len(img_urls)}"
-
-            self.logger.info(log_message)
+            self.logger.info(
+                f"Parsed {url.encode('UTF-8')}:" 
+                f"\n  --Title: {title.encode('UTF-8')}"
+                f"\n  --urls found: {len(urls)}"
+                f"\n  --images found: {len(img_urls)}"
+            )
 
             for new_url in urls:
                 # Create canonical version of the url
                 new_url = page_parser.canonicalize(base_url, new_url)
 
                 new_url_domain = page_parser.get_domain(new_url)
-
-                # new_base_url = page_parser.get_base_url(new_url)
 
                 # Ignore non gov.si sites
                 if not new_url_domain.endswith("gov.si"):
@@ -188,42 +187,17 @@ class Crawler:
                 if not front.allowed(new_url):
                     continue
 
-                # TODO url already in front?
-                # ignore it
-
-                # # Check if site with current domain already exists, if not create new site
-                # site_id, robots_content = db.get_site(domain=new_url_domain)
-                # if not site_id:
-                #     # Site doesn't exists, we can safely fetch robots.txt file without checking any time limit
-                #     # Get and parse robots.txt
-                #     robots_url = urljoin(new_base_url, "robots.txt")
-                #     res = requests.get(robots_url)
-                #
-                #     if res.ok and res.text:
-                #         robots_content = res.text
-                #
-                #     # TODO also fetch sitemap
-                #     site_id = db.create_site(domain=new_url_domain, robots_content=robots_content, sitemap_content=None)
-                #
-                #     disallowed_urls = page_parser.parse_robots(new_base_url, robots_content)
-                #
-                #     # Add new disallowed urls to the frontier's disallowed urls
-                #     front.add_disallowed_urls(disallowed_urls)
-                #
-                #     # Add new disallowed urls to the database
-                #     db.create_disallowed_urls(site_id, disallowed_urls)
-
                 # Check if page with current url already exists, if not add url to frontier
                 duplicate_page_id, new_page_type = db.get_page(url=new_url)
                 if duplicate_page_id:
                     new_page_id = db.create_page(
-                        site_id=duplicate_site_id,
+                        site_id=site_id,
                         url=new_url,
                         page_type_code="DUPLICATE",
                         http_status_code=200
                     )
 
-                    # Create link
+                    # Create a link
                     db.create_link(new_page_id, duplicate_page_id)
                     continue
 
@@ -237,7 +211,8 @@ class Crawler:
                     page_type_code="FRONTIER",
                 )
 
-            # Set current page as done, data type HTML
+            # Set current page as done with data type HTML
+            # TODO set actual data type, not always HTML, what if image or file
             db.set_page_type(page_id, "HTML")
 
             url = front.get_url()
