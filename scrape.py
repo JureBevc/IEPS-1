@@ -121,17 +121,17 @@ class Crawler:
                 db.create_link(duplicate_id, page_id)
                 url = front.get_url()
                 continue
-            else:
-                # TODO set page_type appropriately, not just HTML
-                page_id = db.create_page(
-                    site_id=site_id,
-                    page_type_code="HTML",
-                    url=url,
-                    html_content=html_content,
-                    html_content_hash=html_content_hash,
-                    http_status_code=200
-                )
-                self.logger.info(f"New page was created {page_id} with url {url}.")
+
+            # TODO set page_type appropriately, not just HTML
+            page_id = db.create_page(
+                site_id=site_id,
+                page_type_code="HTML",
+                url=url,
+                html_content=html_content,
+                html_content_hash=html_content_hash,
+                http_status_code=200
+            )
+            self.logger.info(f"New page was created {page_id} with url {url}.")
 
             title, urls, img_urls = page_parser.parse(browser)
 
@@ -182,7 +182,7 @@ class Crawler:
 
                 # Check if page with current url already exists, if not add url to frontier
                 duplicate_page_id = db.get_page(url=new_url)
-                if not duplicate_page_id:
+                if duplicate_page_id:
                     # TODO what about http_status
                     db.create_page(
                         site_id=duplicate_site_id,
