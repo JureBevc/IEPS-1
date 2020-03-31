@@ -187,7 +187,6 @@ class Crawler:
                     db.create_page(
                         site_id=duplicate_site_id,
                         page_type_code="DUPLICATE",
-                        url=url,
                         http_status_code=200
                     )
                     continue
