@@ -32,6 +32,13 @@ class DB:
         self.cur.execute("DROP SCHEMA crawldb CASCADE;")
         self.conn.commit()
 
+    def truncate_all_tables(self):
+        self.logger.info("Truncate all tables in database '{}'".format(self.dbname))
+        tables = ['disallowed_url', 'link', 'page', 'site']
+        for table in tables:
+            self.cur.execute(f"TRUNCATE {table} CASCADE;")
+        self.conn.commit()
+
     def migrate(self, file):
         self.logger.info("Migrate database '{}' with file: {}".format(self.dbname, file))
         self.cur.execute(open(f"./{file}", "r").read())

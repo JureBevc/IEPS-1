@@ -46,6 +46,33 @@ class Crawler:
         if self.db:
             self.db.close()
 
+    def create_site(self, base_url, domain):
+        db = self.db
+        front = self.front
+        robots_content = None
+
+        # Site doesn't exists, we can safely fetch robots.txt file without checking any time limit
+        # Get and parse robots.txt
+        robots_url = urljoin(base_url, "robots.txt")
+        res = requests.get(robots_url)
+
+        if res.ok and res.text:
+            robots_content = res.text
+
+        # TODO also fetch sitemap
+        site_id = db.create_site(domain=domain, robots_content=robots_content, sitemap_content=None)
+
+        if robots_content:
+            disallowed_urls = page_parser.parse_robots(base_url, robots_content)
+
+            # Add new disallowed urls to the frontier's disallowed urls
+            front.add_disallowed_urls(disallowed_urls)
+
+            # Add new disallowed urls to the database
+            db.create_disallowed_urls(site_id, disallowed_urls)
+
+        return site_id
+
     def crawl(self):
         db = self.db
         front = self.front
@@ -65,44 +92,19 @@ class Crawler:
             # Check if site with current domain already exists, if not create new site
             site_id, robots_content = db.get_site(domain=domain)
             if not site_id:
-                # Site doesn't exists, we can safely fetch robots.txt file without checking any time limit
-                # Get and parse robots.txt
-                robots_url = urljoin(base_url, "robots.txt")
-                res = requests.get(robots_url)
-
-                if res.ok and res.text:
-                    robots_content = res.text
-
-                # TODO also fetch sitemap
-                site_id = db.create_site(domain=domain, robots_content=robots_content, sitemap_content=None)
-
-                if robots_content:
-                    disallowed_urls = page_parser.parse_robots(base_url, robots_content)
-
-                    # Add new disallowed urls to the frontier's disallowed urls
-                    front.add_disallowed_urls(disallowed_urls)
-
-                    # Add new disallowed urls to the database
-                    db.create_disallowed_urls(site_id, disallowed_urls)
+                # Site doesn't exists, create it
+                site_id = self.create_site(base_url, domain)
 
             # Check if url is allowed (it is not inside frontier's disallowed urls)
             if not front.allowed(url):
+                # page_type = "DISALLOWED"
                 url = front.get_url()
                 continue
 
-            # Check if 5 seconds have passed since the last request to this IP
-            website_ip = socket.gethostbyname(domain)
-            if website_ip in front.request_history:
-                diff = time.time() - front.request_history[website_ip]
-
-                # If it has been less than 5 seconds since last request, add url back to the frontier and get a new one
-                if diff < 5:
-                    # print("Waiting for " + url)
-                    front.add_url(url)
-                    url = front.get_url()
-                    continue
-
             # Fetch current page from the database FRONTIER
+            if url == "https://e-uprava.gov.si/":
+                print(url)
+
             page_id, page_type = db.get_page(url=url)
             if not page_id:
                 # Maybe url came from the starting url seed, if so, we need to create page object
@@ -130,6 +132,18 @@ class Crawler:
                 # TODO no! should add page as duplicate
                 url = front.get_url()
                 continue
+
+            # Check if 5 seconds have passed since the last request to this IP
+            website_ip = socket.gethostbyname(domain)
+            if website_ip in front.request_history:
+                diff = time.time() - front.request_history[website_ip]
+
+                # If it has been less than 5 seconds since last request, add url back to the frontier and get a new one
+                if diff < 5:
+                    # print("Waiting for " + url)
+                    front.add_url(url)
+                    url = front.get_url()
+                    continue
 
             # Everything is okay.
             # Finally get and parse page
@@ -183,30 +197,44 @@ class Crawler:
                 if not new_url_domain.endswith("gov.si"):
                     continue
 
-                # Url was found in some site's robots.txt file, ignore it
-                if not front.allowed(new_url):
-                    continue
+                existing_site_id = site_id
+
+                # Check if domain matches current site_id
+                if new_url_domain == domain:
+                    if not front.allowed(new_url):
+                        continue
+                else:
+                    # if not try to fetch site with this domain from the database, if it exists,
+                    # it means it already has robots.txt processed so we can check if we it is allowed to be added to the frontier or not
+                    existing_site_id, _ = db.get_site(new_url_domain)
+
+                # If site doesn't exist, create new one
+                if not existing_site_id:
+                    new_base_url = page_parser.get_base_url(new_url)
+                    existing_site_id = self.create_site(new_base_url, new_url_domain)
 
                 # Check if page with current url already exists, if not add url to frontier
                 duplicate_page_id, new_page_type = db.get_page(url=new_url)
                 if duplicate_page_id:
                     new_page_id = db.create_page(
-                        site_id=site_id,
+                        site_id=existing_site_id,
                         url=new_url,
-                        page_type_code="DUPLICATE",
-                        http_status_code=200
+                        page_type_code="DUPLICATE"
                     )
 
                     # Create a link
                     db.create_link(new_page_id, duplicate_page_id)
                     continue
 
+                if new_url == "https://e-uprava.gov.si/":
+                    print(new_url)
+
                 # Everything was good, we can add this url to the frontier.
                 front.add_url(new_url)
 
                 # Create page object with FRONTIER type
                 page_id = db.create_page(
-                    site_id=site_id,
+                    site_id=existing_site_id,
                     url=new_url,
                     page_type_code="FRONTIER",
                 )
@@ -223,7 +251,7 @@ class Crawler:
 def main():
     db = DB()
 
-    starting_urls = ["https://www.gov.si", "http://evem.gov.si", "https://e-uprava.gov.si", "https://www.e-prostor.gov.si/"]
+    starting_urls = ["https://www.gov.si/", "http://evem.gov.si/", "https://e-uprava.gov.si/", "https://www.e-prostor.gov.si/"]
 
     # Check if url was already processed
     for url in starting_urls:

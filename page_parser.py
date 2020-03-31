@@ -12,6 +12,8 @@ def canonicalize(base_url, url):
         Good library:
             https://github.com/rbaier/python-urltools
     """
+
+    # TODO "https://e-uprava.gov.si/*/" does not get parsed correctly
     # Fix relative urls
     url = urljoin(base_url, url)
 
@@ -64,6 +66,8 @@ def get_base_url(url):
 
 def parse_robots(base_url, robots_txt):
     disallowed_urls = []
+    site_map_urls = []
+
     all_agents = False
     user_agent = "User-agent:"
     disallow = "Disallow:"
