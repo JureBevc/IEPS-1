@@ -31,7 +31,10 @@ def canonicalize(base_url, url):
 
     # Add a trailing slash? Maybe this si not okay in every case? for example images
     if not url.endswith("/"):
-        url += "/"
+        parameters = urltools.parse(url).query
+        # Don't add trailing slash if url has parameters
+        if not parameters:
+            url += "/"
 
     return url
 

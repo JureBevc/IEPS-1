@@ -103,6 +103,7 @@ class Crawler:
 
             # Check if url is allowed (it is not inside frontier's disallowed urls)
             if not front.allowed(url):
+                self.logger.info(f"Skip not allowed URL: {url}")
                 # page_type = "DISALLOWED"
                 url = front.get_url()
                 continue
@@ -140,7 +141,12 @@ class Crawler:
                 continue
 
             # Check if 5 seconds have passed since the last request to this IP
-            website_ip = socket.gethostbyname(domain)
+            try:
+                website_ip = socket.gethostbyname(domain)
+            except Exception as e:
+                self.logger.error(e)
+                continue
+
             if website_ip in front.request_history:
                 diff = time.time() - front.request_history[website_ip]
 
