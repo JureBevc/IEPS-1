@@ -7,4 +7,3 @@ colorlog
 selenium-requests
 requests
 urltools
-urlnorm
