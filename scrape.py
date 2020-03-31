@@ -101,7 +101,30 @@ class Crawler:
                     url = front.get_url()
                     continue
 
-            # Everything is okay, we can fetch page.
+            # Fetch current page from the database FRONTIER
+            page_id, page_type = db.get_page(url=url)
+            if not page_id:
+                # Maybe url came from the starting url seed, if so, we need to create page object
+                if url in starting_urls:
+                    # Create page object with FRONTIER type
+                    page_id = db.create_page(
+                        site_id=site_id,
+                        url=url,
+                        page_type_code="FRONTIER",
+                    )
+                else:
+                    # Something went wrong in the process
+                    self.logger.error(f"Page with url {url} is not in the database, but it should be as it was added to the frontier.")
+                    url = front.get_url()
+                    continue
+
+            if not page_type or page_type != "FRONTIER":
+                # I gues something went wrong, or some other crawler already finished this page (probably shouldn't have happened)
+                self.logger.error(f"Page {page_id} with url {url} is of type {page_type} but it should be 'FRONTIER'.")
+                url = front.get_url()
+                continue
+
+            # Everything is okay.
             # Finally get and parse page
             browser.get(url)
 
@@ -113,15 +136,13 @@ class Crawler:
             html_content_hash = hashlib.sha1(html_content.encode('UTF-8')).hexdigest()
             duplicate_id, duplicate_site_id = self.db.get_page_by_hash(html_content_hash)
             if duplicate_id:
-                page_id = db.create_page(
-                    site_id=duplicate_site_id,
-                    page_type_code="DUPLICATE",
-                    url=url,
-                    http_status_code=200
+                db.set_page_type(
+                    page_id=page_id,
+                    page_type_code="DUPLICATE"
                 )
 
-                self.logger.info(f"Page {duplicate_id} duplicate was found on url {url}.")
-                db.create_link(duplicate_id, page_id)
+                self.logger.info(f"Page {page_id} has a duplicate {duplicate_id} on url {url}.")
+                db.create_link(page_id, duplicate_id)
                 url = front.get_url()
                 continue
 
@@ -197,6 +218,13 @@ class Crawler:
                 # Everything was good, we can add this url to the frontier.
                 front.add_url(new_url)
 
+                # Create page object with FRONTIER type
+                page_id = db.create_page(
+                    site_id=site_id,
+                    url=new_url,
+                    page_type_code="FRONTIER",
+                )
+
             # Set current page as done, data type HTML
             db.set_page_type(page_id, "HTML")
 
@@ -204,16 +232,25 @@ class Crawler:
 
         browser.quit()
 
+
 if __name__ == "__main__":
     database = DB()
 
-    # Select all
-    # database.set_page_type(page_id=1, t="FRONTIER")
-
     starting_urls = ["https://www.gov.si", "http://evem.gov.si", "https://e-uprava.gov.si", "https://www.e-prostor.gov.si/"]
+
+    # Check if url was already processed
+    for url in starting_urls:
+        page = database.get_page(url)
+        if page:
+            starting_urls.remove(url)
 
     # Fetch disallowed urls and pass it to the frontier as disallowed urls
     disallowed = database.get_disallowed_urls()
+
+    # Get pages with type FRONTIER to fill the frontier
+    frontier_pages = database.get_pages_by_type(page_type_code="FRONTIER")
+    starting_urls.extend(frontier_pages)
+
     database.close()
 
     frontier = Frontier(starting_urls, disallowed)

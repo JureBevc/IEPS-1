@@ -135,8 +135,22 @@ class DB:
 
     def get_page(self, url=None):
         try:
-            query = "SELECT id FROM page WHERE url = %s;"
+            query = "SELECT id, page_type_code FROM page WHERE url = %s;"
             executed = self.execute(query, (url,))
+            if executed:
+                res = self.cur.fetchone()
+                if res:
+                    return res[0], res[1]
+        except Exception as e:
+            self.logger.error(e)
+            self.conn.rollback()
+
+        return None, None
+
+    def get_page_by_url_and_type(self, url=None, page_type=None):
+        try:
+            query = "SELECT id FROM page WHERE url = %s AND data_type = %s;"
+            executed = self.execute(query, (url, page_type))
             if executed:
                 res = self.cur.fetchone()
                 if res:
@@ -155,6 +169,19 @@ class DB:
                 res = self.cur.fetchone()
                 if res:
                     return res[0], res[1]
+        except Exception as e:
+            self.logger.error(e)
+            self.conn.rollback()
+
+        return None, None
+
+    def get_pages_by_type(self, page_type_code=None):
+        try:
+            query = "SELECT url FROM page WHERE page_type_code = %s;"
+            executed = self.execute(query, (page_type_code,))
+            if executed:
+                urls = self.cur.fetchall()
+                return urls
         except Exception as e:
             self.logger.error(e)
             self.conn.rollback()
@@ -185,14 +212,14 @@ class DB:
             self.conn.rollback()
         return None
 
-    def set_page_type(self, page_id=None, t=None):
+    def set_page_type(self, page_id=None, page_type_code=None):
         # HTML
         # BINARY
         # DUPLICATE
         # FRONTIER
         try:
             query = "UPDATE page SET page_type_code = %s WHERE id = %s;"
-            self.cur.execute(query, (t, page_id))
+            self.cur.execute(query, (page_type_code, page_id))
             self.conn.commit()
             return self.cur.rowcount
         except Exception as e:
@@ -242,12 +269,7 @@ class DB:
     def get_disallowed_urls(self):
         self.cur.execute("SELECT url FROM disallowed_url")
         disallowed_urls = self.cur.fetchall()
-        urls = list()
-
-        for url in disallowed_urls:
-            urls.append(url)
-
-        return urls
+        return disallowed_urls
 
     def get_types(self):
         self.cur.execute("SELECT * FROM data_type")
