@@ -1,4 +1,7 @@
 import colorlog
+import os
+
+ROOT_DIR = os.path.dirname(__file__)
 
 
 def get_logger(name=None):
@@ -7,7 +10,7 @@ def get_logger(name=None):
     colorlog.basicConfig(
         format=format_str,
         datefmt=datefmt,
-        filename='crawldb.log',
+        filename=os.path.join(ROOT_DIR, 'logs/crawldb.log'),
         filemode='a'
     )
 

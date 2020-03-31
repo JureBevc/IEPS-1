@@ -1,9 +1,8 @@
 from datetime import datetime
 
 import psycopg2
-from psycopg2.pool import ThreadedConnectionPool
 
-import db.db_settings as db_settings
+from db import db_settings
 from logger import get_logger
 
 
@@ -24,8 +23,8 @@ class DB:
         self.connect()
 
     def create(self):
-        self.logger.info("Import database '{}'".format(self.dbname))
-        self.cur.execute(open("db/crawldb.sql", "r").read())
+        self.logger.info("Import database '{}' from migrations/crawldb.sql".format(self.dbname))
+        self.cur.execute(open("migrations/crawldb.sql", "r").read())
         self.conn.commit()
 
     def drop_all_tables(self):

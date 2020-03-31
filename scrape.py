@@ -1,4 +1,5 @@
 import hashlib
+import os
 from urllib.parse import urljoin
 
 from seleniumrequests import Firefox
@@ -10,9 +11,11 @@ import sys
 import threading
 import page_parser
 from frontier import Frontier
-from db.db import DB
+from db.database import DB
 import time
 from logger import get_logger
+
+PROJECT_ROOT = os.path.dirname(__file__)
 
 
 class Crawler:
@@ -50,7 +53,7 @@ class Crawler:
 
         options = Options()
         options.headless = True
-        browser = Firefox(options=options)
+        browser = Firefox(options=options, log_path=os.path.join(PROJECT_ROOT, 'logs/geckodriver.log'))
 
         url = front.get_url()
         while url is not None:
@@ -201,32 +204,16 @@ class Crawler:
 
         browser.quit()
 
-
 if __name__ == "__main__":
     database = DB()
 
-    # Create tables from db/crawldb.sql
-    database.create()
-    # TODO wait until db is created, takes 5 secs
-
-    # Test DB insert
-    # site_id = database.create_site(domain="24ur.com", robots_content="test robots content",
-    #                          sitemap_content="some test sitemap content")
-    # database.create_page(site_id=site_id, page_type_code="HTML", url="24ur.com", html_content=None, http_status_code=200,
-    #                accessed_time=None)
-
     # Select all
-    # database.get_types()
     # database.set_page_type(page_id=1, t="FRONTIER")
 
-    # First we insert those 4 sites to the database
     starting_urls = ["https://www.gov.si", "http://evem.gov.si", "https://e-uprava.gov.si", "https://www.e-prostor.gov.si/"]
 
     # Fetch disallowed urls and pass it to the frontier as disallowed urls
     disallowed = database.get_disallowed_urls()
-
-    # Drop all tables from the database
-    # database.drop_all_tables()
     database.close()
 
     frontier = Frontier(starting_urls, disallowed)
