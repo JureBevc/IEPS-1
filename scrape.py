@@ -54,10 +54,12 @@ class Crawler:
         # Site doesn't exists, we can safely fetch robots.txt file without checking any time limit
         # Get and parse robots.txt
         robots_url = urljoin(base_url, "robots.txt")
-        res = requests.get(robots_url)
-
-        if res.ok and res.text:
-            robots_content = res.text
+        try:
+            res = requests.get(robots_url)
+            if res.ok and res.text:
+                robots_content = res.text
+        except Exception as e:
+            self.logger.error(f"Connection error for: {robots_url}\n {e}".encode("UTF-8"))
 
         # TODO also fetch sitemap
         site_id = db.create_site(domain=domain, robots_content=robots_content, sitemap_content=None)
