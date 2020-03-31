@@ -103,7 +103,7 @@ class DB:
         return False
 
     def create_site(self, domain=None, robots_content=None, sitemap_content=None):
-        self.logger.info("Create site: {}".format(domain))
+        self.logger.info("Create site with domain: {}".format(domain))
         try:
             query = "INSERT INTO site(domain, robots_content, sitemap_content) VALUES(%s, %s, %s) RETURNING id;"
             values = (domain, robots_content, sitemap_content)
@@ -112,7 +112,7 @@ class DB:
                 self.conn.commit()
                 res = self.cur.fetchone()
                 if res:
-                    self.logger.info(f"    Site id: {res[0]}")
+                    self.logger.info(f"    New site was created, id: {res[0]}")
                     return res[0]
         except Exception as e:
             self.logger.error(e)
@@ -189,24 +189,53 @@ class DB:
         return None, None
 
     def create_page(self, site_id=None, page_type_code=None, url=None, html_content=None, http_status_code=None, accessed_time=None, html_content_hash=None):
+        # TODO check for duplicates here
+        self.logger.info(f"Create a new {page_type_code} page with url: {url}")
+
         if not accessed_time:
             accessed_time = datetime.now()
 
-        # TODO check for duplicates here
-        self.logger.info("Create page: {}".format(url))
-        try:
+        if page_type_code == "DUPLICATE":
+            query = """
+                INSERT INTO page(site_id, page_type_code, http_status_code, accessed_time, html_content_hash) 
+                VALUES(%s, %s, %s, %s, %s) RETURNING id;
+            """
+            values = (site_id, page_type_code, http_status_code, accessed_time, html_content_hash)
+        else:
             query = """
                 INSERT INTO page(site_id, page_type_code, url, html_content, http_status_code, accessed_time, html_content_hash) 
                 VALUES(%s, %s, %s, %s, %s, %s, %s) RETURNING id;
             """
             values = (site_id, page_type_code, url, html_content, http_status_code, accessed_time, html_content_hash)
+
+        try:
             executed = self.execute(query, values)
             if executed:
                 self.conn.commit()
                 res = self.cur.fetchone()
                 if res:
-                    self.logger.info(f"    Page id: {res[0]}")
+                    self.logger.info(f"    New {page_type_code} page was created, id: {res[0]}.")
                     return res[0]
+        except Exception as e:
+            self.logger.error(e)
+            self.conn.rollback()
+        return None
+
+    def update_page(self, page_id=None, fields=None):
+        if not page_id or not fields:
+            return None
+
+        try:
+            a = "page_type_code = %s WHERE id = %s;"
+            fields_string = ""
+            for key in fields.keys():
+                fields_string += f" {key} = %s,"
+
+            query = f"UPDATE page SET{fields_string[:-1]} WHERE id = %s;"
+            values = tuple(list(fields.values()) + [page_id])
+            self.cur.execute(query, values)
+            self.conn.commit()
+            return self.cur.rowcount
         except Exception as e:
             self.logger.error(e)
             self.conn.rollback()
@@ -228,7 +257,7 @@ class DB:
         return None
 
     def create_link(self, from_page=None, to_page=None):
-        self.logger.info("Create link from {} to {}".format(from_page, to_page))
+        self.logger.info("Create a link from page {} to page {}".format(from_page, to_page))
         try:
             query = "INSERT INTO link(from_page, to_page) VALUES(%s, %s);"
             self.cur.execute(query, (from_page, to_page))
@@ -240,7 +269,7 @@ class DB:
         return None
 
     def create_disallowed_url(self, site_id=None, url=None):
-        self.logger.info("Create disallowed url from site {} to {}".format(site_id, url))
+        self.logger.info("Create a disallowed url from site {} to {}".format(site_id, url))
         try:
             query = "INSERT INTO disallowed_url(site_id, url) VALUES(%s, %s) ON CONFLICT DO NOTHING;"
             self.cur.execute(query, (site_id, url))

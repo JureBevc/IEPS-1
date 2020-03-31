@@ -8,7 +8,7 @@ class Frontier:
             disallowed_urls = []
 
         # Used to forever know with what urls we started this instance
-        self.starting_urls = starting_urls
+        self.starting_urls = starting_urls.copy()
 
         self.disallowed_urls = disallowed_urls
         self.url_queue = starting_urls

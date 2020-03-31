@@ -1,5 +1,5 @@
 from url_normalize import url_normalize
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urlparse, urljoin, urldefrag
 import urltools
 
 
@@ -24,7 +24,12 @@ def canonicalize(base_url, url):
     # sort query parameters
     url = urltools.normalize(url)
 
-    # TODO add trailing slash?
+    # Remove url fragments
+    url = urldefrag(url).url
+
+    # Add a trailing slash? Maybe this si not okay in every case? for example images
+    if not url.endswith("/"):
+        url += "/"
 
     return url
 

@@ -76,13 +76,14 @@ class Crawler:
                 # TODO also fetch sitemap
                 site_id = db.create_site(domain=domain, robots_content=robots_content, sitemap_content=None)
 
-                disallowed_urls = page_parser.parse_robots(base_url, robots_content)
+                if robots_content:
+                    disallowed_urls = page_parser.parse_robots(base_url, robots_content)
 
-                # Add new disallowed urls to the frontier's disallowed urls
-                front.add_disallowed_urls(disallowed_urls)
+                    # Add new disallowed urls to the frontier's disallowed urls
+                    front.add_disallowed_urls(disallowed_urls)
 
-                # Add new disallowed urls to the database
-                db.create_disallowed_urls(site_id, disallowed_urls)
+                    # Add new disallowed urls to the database
+                    db.create_disallowed_urls(site_id, disallowed_urls)
 
             # Check if url is allowed (is not inside disallowed urls)
             if not front.allowed(url):
@@ -105,12 +106,17 @@ class Crawler:
             page_id, page_type = db.get_page(url=url)
             if not page_id:
                 # Maybe url came from the starting url seed, if so, we need to create page object
-                if url in starting_urls:
+                if url in front.starting_urls:
+                    page_type = "FRONTIER"
+
+                    # Create canonical version of the url
+                    url = page_parser.canonicalize(base_url, url)
+
                     # Create page object with FRONTIER type
                     page_id = db.create_page(
                         site_id=site_id,
                         url=url,
-                        page_type_code="FRONTIER",
+                        page_type_code=page_type,
                     )
                 else:
                     # Something went wrong in the process
@@ -147,15 +153,15 @@ class Crawler:
                 continue
 
             # TODO set page_type appropriately, not just HTML
-            page_id = db.create_page(
-                site_id=site_id,
-                page_type_code="HTML",
-                url=url,
-                html_content=html_content,
-                html_content_hash=html_content_hash,
-                http_status_code=200
+            page_id = db.update_page(
+                page_id=page_id,
+                fields=dict(
+                    page_type_code="HTML",
+                    html_content=html_content,
+                    html_content_hash=html_content_hash,
+                    http_status_code=200,
+                )
             )
-            self.logger.info(f"New page was created {page_id} with url {url}.")
 
             title, urls, img_urls = page_parser.parse(browser)
 
@@ -182,6 +188,9 @@ class Crawler:
                 if not front.allowed(new_url):
                     continue
 
+                # TODO url already in front?
+                # ignore it
+
                 # # Check if site with current domain already exists, if not create new site
                 # site_id, robots_content = db.get_site(domain=new_url_domain)
                 # if not site_id:
@@ -205,14 +214,17 @@ class Crawler:
                 #     db.create_disallowed_urls(site_id, disallowed_urls)
 
                 # Check if page with current url already exists, if not add url to frontier
-                duplicate_page_id = db.get_page(url=new_url)
+                duplicate_page_id, new_page_type = db.get_page(url=new_url)
                 if duplicate_page_id:
-                    # TODO what about http_status
-                    db.create_page(
+                    new_page_id = db.create_page(
                         site_id=duplicate_site_id,
+                        url=new_url,
                         page_type_code="DUPLICATE",
                         http_status_code=200
                     )
+
+                    # Create link
+                    db.create_link(new_page_id, duplicate_page_id)
                     continue
 
                 # Everything was good, we can add this url to the frontier.
@@ -233,25 +245,25 @@ class Crawler:
         browser.quit()
 
 
-if __name__ == "__main__":
-    database = DB()
+def main():
+    db = DB()
 
     starting_urls = ["https://www.gov.si", "http://evem.gov.si", "https://e-uprava.gov.si", "https://www.e-prostor.gov.si/"]
 
     # Check if url was already processed
     for url in starting_urls:
-        page = database.get_page(url)
+        page, page_type = db.get_page(url)
         if page:
             starting_urls.remove(url)
 
     # Fetch disallowed urls and pass it to the frontier as disallowed urls
-    disallowed = database.get_disallowed_urls()
+    disallowed = db.get_disallowed_urls()
 
     # Get pages with type FRONTIER to fill the frontier
-    frontier_pages = database.get_pages_by_type(page_type_code="FRONTIER")
+    frontier_pages = db.get_pages_by_type(page_type_code="FRONTIER")
     starting_urls.extend(frontier_pages)
 
-    database.close()
+    db.close()
 
     frontier = Frontier(starting_urls, disallowed)
 
@@ -264,3 +276,7 @@ if __name__ == "__main__":
         crawler = Crawler(name=f"crawler_{i}", front=frontier)
         crawlers[i] = crawler
         crawler.start()
+
+
+if __name__ == "__main__":
+    main()
