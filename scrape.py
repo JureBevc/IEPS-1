@@ -35,7 +35,6 @@ class Crawler:
         # Save thread to the instance and start crawling
         if not self.thread or not self.thread.is_alive():
             # Create new database connection
-            # TODO also (see postgres connection pool)
             self.db = DB(logger=self.logger)
 
             self.thread = threading.Thread(target=self.crawl)
@@ -56,9 +55,9 @@ class Crawler:
         # Site doesn't exists, we can safely fetch robots.txt file without checking any time limit
         # Get and parse robots.txt
         if not base_url:
-            print("no base")
+            self.logger.error(f"No base url for {domain}")
         if not domain:
-            print("no domain")
+            print(f"no domain for {base_url}")
 
         robots_url = urljoin(base_url, "robots.txt")
         rp = urllib.robotparser.RobotFileParser()
@@ -303,16 +302,13 @@ def main():
         if page:
             starting_urls.remove(url)
 
-    # Fetch disallowed urls and pass it to the frontier as disallowed urls
-    disallowed = db.get_disallowed_urls()
-
     # Get pages with type FRONTIER to fill the frontier
     frontier_pages = db.get_pages_by_type(page_type_code="FRONTIER")
     starting_urls.extend([p[0] for p in frontier_pages])
 
     db.close()
 
-    frontier = Frontier(starting_urls, disallowed, site_robots)
+    frontier = Frontier(starting_urls, site_robots)
 
     # Number of workers can be passed as the parameter
     number_of_crawlers = int(sys.argv[1]) if len(sys.argv) > 1 else 1

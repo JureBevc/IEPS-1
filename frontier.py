@@ -1,11 +1,9 @@
 class Frontier:
     request_history = dict()
 
-    def __init__(self, starting_urls=None, disallowed_urls=None, site_robots=None):
+    def __init__(self, starting_urls=None, site_robots=None):
         if not starting_urls:
             starting_urls = []
-        if not disallowed_urls:
-            disallowed_urls = []
         if not site_robots:
             site_robots = dict()
 
@@ -15,14 +13,7 @@ class Frontier:
         # Used to forever know with what urls we started this instance
         self.starting_urls = starting_urls.copy()
 
-        self.disallowed_urls = disallowed_urls
         self.url_queue = starting_urls
-
-    def add_disallowed_urls(self, urls):
-        # TODO maybe use set instead of array
-        for url in urls:
-            if url not in self.disallowed_urls:
-                self.disallowed_urls.append(url)
 
     def can_fetch(self, site_id, url):
         """

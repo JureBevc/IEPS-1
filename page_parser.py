@@ -101,16 +101,10 @@ def parse(browser):
     for link in links:
         ref = link.get_attribute("href")
         if ref:
-            # TODO fix canonicalization with new rules from discord image
-            # https://ucilnica.fri.uni-lj.si/pluginfile.php/98677/mod_label/intro/Web%20crawling%20-%20basics.pdf?time=1550779699177
-            # slide 16
-            # ref = canonical(ref)
             urls.append(ref)
     images = browser.find_elements_by_tag_name("img")
     for image in images:
         src = image.get_attribute("src")
         if src:
-            # TODO fix canonicalization with new rules from discord image
-            # src = canonical(src)
             img_urls.append(src)
     return title, urls, img_urls
