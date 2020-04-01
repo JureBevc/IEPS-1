@@ -1,5 +1,3 @@
-from datetime import datetime
-
 import psycopg2
 
 from db import db_settings
@@ -213,9 +211,6 @@ class DB:
     def create_page(self, site_id=None, page_type_code=None, url=None, html_content=None, http_status_code=None, accessed_time=None, html_content_hash=None):
         # TODO check for duplicates here
         self.logger.info(f"Create a new {page_type_code} page with url: {url}")
-
-        if not accessed_time:
-            accessed_time = datetime.now()
 
         if page_type_code == "DUPLICATE":
             query = """
