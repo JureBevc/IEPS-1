@@ -21,8 +21,8 @@ class DB:
         self.connect()
 
     def create(self):
-        self.logger.info("Import database '{}' from migrations/crawldb.sql".format(self.dbname))
-        self.cur.execute(open("db/migrations/crawldb.sql", "r").read())
+        self.logger.info("Import database '{}' from db/migrations/crawldb.sql".format(self.dbname))
+        self.cur.execute(open("migrations/crawldb.sql", "r").read())
         self.conn.commit()
 
     def drop_all_tables(self):
@@ -32,14 +32,14 @@ class DB:
 
     def truncate_all_tables(self):
         self.logger.info("Truncate all tables in database '{}'".format(self.dbname))
-        tables = ['disallowed_url', 'link', 'page', 'site']
+        tables = ['link', 'page', 'site']
         for table in tables:
             self.cur.execute(f"TRUNCATE {table} CASCADE;")
         self.conn.commit()
 
     def migrate(self, file):
         self.logger.info("Migrate database '{}' with file: {}".format(self.dbname, file))
-        self.cur.execute(open(f"db/migrations/{file}", "r").read())
+        self.cur.execute(open(f"migrations/{file}", "r").read())
         self.conn.commit()
 
     def connect(self):
@@ -303,38 +303,6 @@ class DB:
             self.logger.error(e)
             self.conn.rollback()
         return None
-
-    def create_disallowed_url(self, site_id=None, url=None):
-        self.logger.info("Create a disallowed url from site {} to {}".format(site_id, url))
-        try:
-            query = "INSERT INTO disallowed_url(site_id, url) VALUES(%s, %s) ON CONFLICT DO NOTHING;"
-            self.cur.execute(query, (site_id, url))
-            self.conn.commit()
-            return True
-        except Exception as e:
-            self.logger.error(e)
-            self.conn.rollback()
-        return None
-
-    def create_disallowed_urls(self, site_id=None, urls=None):
-        self.logger.info("Create {} disallowed urls from site {}".format(len(urls), site_id))
-        try:
-            for url in urls:
-                query = "INSERT INTO disallowed_url(site_id, url) VALUES(%s, %s) ON CONFLICT DO NOTHING;"
-                executed = self.execute(query, (site_id, url))
-                if executed:
-                    self.conn.commit()
-
-            return True
-        except Exception as e:
-            self.logger.error(e)
-            self.conn.rollback()
-        return None
-
-    def get_disallowed_urls(self):
-        self.cur.execute("SELECT url FROM disallowed_url")
-        disallowed_urls = self.cur.fetchall()
-        return disallowed_urls
 
     def get_types(self):
         self.cur.execute("SELECT * FROM data_type")

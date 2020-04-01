@@ -17,14 +17,14 @@ from logger import get_logger
 class Crawler:
     thread = None
 
-    def __init__(self, name=None, front=None):
+    def __init__(self, name=None, front=None, log_level=None, log_path=None):
         self.name = name
         self.front = front
         self.db = None
         self.thread = None
 
         # Start logger
-        self.logger = get_logger(name=name, level="ERROR")
+        self.logger = get_logger(name=name, level=log_level, log_path=log_path)
 
     def start(self):
         # Save thread to the instance and start crawling
@@ -34,8 +34,10 @@ class Crawler:
 
             self.thread = threading.Thread(target=self.crawl)
             self.thread.start()
+            return self.thread
         else:
             self.logger.error("Can't start a new thread, thread is already running.")
+            return None
 
     def stop(self):
         if self.db:
@@ -167,11 +169,13 @@ class Crawler:
 
             # Everything is okay.
             # Finally get and parse page
+            accessed_time = datetime.now()
             try:
                 browser.get(url)
             except Exception as e:
                 self.logger.error(f"Webdriver exception occured while fetching {url}. {e}")
                 db.set_page_type(page_id, "WEBDRIVER_ERROR")
+                # TODO set page accessed time
                 url = front.get_url()
                 continue
 
@@ -183,9 +187,12 @@ class Crawler:
             html_content_hash = hashlib.sha1(html_content.encode('UTF-8')).hexdigest()
             duplicate_id, duplicate_site_id = self.db.get_page_by_hash(html_content_hash)
             if duplicate_id:
-                db.set_page_type(
+                db.update_page(
                     page_id=page_id,
-                    page_type_code="DUPLICATE"
+                    fields=dict(
+                        page_type_code="DUPLICATE",
+                        accessed_time=accessed_time
+                    )
                 )
 
                 self.logger.info(f"Page {page_id} has a duplicate {duplicate_id} on url {url}.")
@@ -201,6 +208,7 @@ class Crawler:
                     html_content=html_content,
                     html_content_hash=html_content_hash,
                     http_status_code=200,
+                    accessed_time=accessed_time
                 )
             )
 
@@ -262,7 +270,7 @@ class Crawler:
                 front.add_url(new_url)
 
                 # Create page object with FRONTIER type
-                new_page_id = db.create_page(
+                db.create_page(
                     site_id=existing_site_id,
                     url=new_url,
                     page_type_code="FRONTIER",

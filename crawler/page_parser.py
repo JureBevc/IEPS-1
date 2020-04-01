@@ -3,14 +3,10 @@ from urllib.parse import urlparse, urljoin, urldefrag
 import urltools
 import re
 
+
 def canonicalize(base_url, url):
     """
-        this is a canonical() copy, just for the reference, so I (Luka) don't delete your code.
-        Inspiration taken from:
-            https://stackoverflow.com/questions/10584861/canonicalize-normalize-a-url
-
-        Good library:
-            https://github.com/rbaier/python-urltools
+        https://github.com/rbaier/python-urltools
     """
 
     # TODO "https://e-uprava.gov.si/*/" does not get parsed correctly
@@ -54,7 +50,6 @@ def get_base_url(url):
 
 def parse_robots(base_url, robots_txt):
     disallowed_urls = []
-    site_map_urls = []
 
     all_agents = False
     user_agent = "User-agent:"
@@ -80,6 +75,7 @@ def parse(browser):
     email_regex = '^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$'
     html = browser.page_source
 
+    # Only need to check if onclick attr has: href= or location=
     # Create beautiful soup instance to find onclick links
     soup = BeautifulSoup(html, 'html.parser')
     for onclick in soup.body.find_all(attrs={'onclick': True}):
@@ -98,7 +94,6 @@ def parse(browser):
                 urls.append(url)
             continue
 
-    # Only need to check if onClick tag has: location.href or document.location
     links = browser.find_elements_by_tag_name("a")
     for link in links:
         ref = link.get_attribute("href")
