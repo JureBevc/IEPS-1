@@ -1,13 +1,10 @@
+print('__file__={0:<35} | __name__={1:<20} | __package__={2:<20}'.format(__file__, __name__, str(__package__)))
+
 from datetime import datetime
 
 import psycopg2
 
 from db import db_settings
-
-import os,sys,inspect
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(currentdir)
-sys.path.insert(0,parentdir)
 from logger import get_logger
 
 
@@ -29,7 +26,7 @@ class DB:
 
     def create(self):
         self.logger.info("Import database '{}' from migrations/crawldb.sql".format(self.dbname))
-        self.cur.execute(open("migrations/crawldb.sql", "r").read())
+        self.cur.execute(open("db/migrations/crawldb.sql", "r").read())
         self.conn.commit()
 
     def drop_all_tables(self):
@@ -46,7 +43,7 @@ class DB:
 
     def migrate(self, file):
         self.logger.info("Migrate database '{}' with file: {}".format(self.dbname, file))
-        self.cur.execute(open(f"./{file}", "r").read())
+        self.cur.execute(open(f"db/migrations/{file}", "r").read())
         self.conn.commit()
 
     def connect(self):

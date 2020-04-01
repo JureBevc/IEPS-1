@@ -1,9 +1,8 @@
-from database import DB
+from db.database import DB
 
-if __name__ == "__main__":
-    db = DB()
+db = DB()
 
-    # Create tables from db/migrations/crawldb.sql
-    db.create()
+# Create tables from db/migrations/crawldb.sql
+db.create()
 
-    db.close()
+db.close()

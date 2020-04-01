@@ -1,8 +1,7 @@
-from database import DB
+from db.database import DB
 
-if __name__ == "__main__":
-    db = DB()
+db = DB()
 
-    # Drop all tables from the database
-    db.drop_all_tables()
-    db.close()
+# Drop all tables from the database
+db.drop_all_tables()
+db.close()
