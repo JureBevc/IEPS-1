@@ -24,7 +24,10 @@ def canonicalize(base_url, url):
     # removing the last character in the hostname if it is ‘.’
     # unquoting any % escaped characters (where possible)
     # sort query parameters
-    url = urltools.normalize(url)
+    try:
+        url = urltools.normalize(url)
+    except Exception as e:
+        print(e)
 
     # Remove url fragments
     url = urldefrag(url).url
@@ -87,8 +90,8 @@ def parse(browser):
             urls.append(url)
             continue
 
-        found = onclick.find("location=")
-        if found:
+        found = ref.find("location=")
+        if found >= 0:
             url = ref[found+9:].strip().strip("\'").strip().strip("\"").strip()
             urls.append(url)
             continue
@@ -97,7 +100,7 @@ def parse(browser):
     links = browser.find_elements_by_tag_name("a")
     for link in links:
         ref = link.get_attribute("href")
-        if ref is not None:
+        if ref:
             # TODO fix canonicalization with new rules from discord image
             # https://ucilnica.fri.uni-lj.si/pluginfile.php/98677/mod_label/intro/Web%20crawling%20-%20basics.pdf?time=1550779699177
             # slide 16
@@ -106,7 +109,7 @@ def parse(browser):
     images = browser.find_elements_by_tag_name("img")
     for image in images:
         src = image.get_attribute("src")
-        if src is not None:
+        if src:
             # TODO fix canonicalization with new rules from discord image
             # src = canonical(src)
             img_urls.append(src)
