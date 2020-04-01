@@ -3,6 +3,11 @@ from datetime import datetime
 import psycopg2
 
 from db import db_settings
+
+import os,sys,inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0,parentdir)
 from logger import get_logger
 
 
