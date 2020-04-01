@@ -93,6 +93,9 @@ class Crawler:
         options.headless = True
         browser = Firefox(options=options, service_log_path=os.path.join(PROJECT_ROOT, 'logs/geckodriver.log'))
 
+        # Wait 5 seconds before throwing exception when not finding elements
+        browser.implicitly_wait(5)
+
         url = front.get_url()
         while url is not None:
             self.logger.info(f"Check url {url}")
@@ -149,9 +152,9 @@ class Crawler:
             try:
                 website_ip = socket.gethostbyname(domain)
             except Exception as e:
-                # TODO set page as can't resolve domain name
                 db.set_page_type(page_id, "DOMAIN_ERROR")
-                self.logger.error(e)
+                self.logger.error(f"Can't resolve domain name {domain}. Skip page {page_id} and set it as DOMAIN_ERROR.")
+                url = front.get_url()
                 continue
 
             if website_ip in front.request_history:
@@ -170,7 +173,13 @@ class Crawler:
 
             # Everything is okay.
             # Finally get and parse page
-            browser.get(url)
+            try:
+                browser.get(url)
+            except Exception as e:
+                self.logger.error(f"Webdriver exception occured while fetching {url}. {e}")
+                db.set_page_type(page_id, "WEBDRIVER_ERROR")
+                url = front.get_url()
+                continue
 
             # Set current time as the last request time for the current IP
             front.request_history[website_ip] = time.time()
@@ -204,7 +213,7 @@ class Crawler:
             title, urls, img_urls = page_parser.parse(browser)
 
             self.logger.info(
-                f"Parsed {url.encode('UTF-8')}:" 
+                f"Parsed {url}:" 
                 f"\n  --Title: {title.encode('UTF-8')}"
                 f"\n  --urls found: {len(urls)}"
                 f"\n  --images found: {len(img_urls)}"

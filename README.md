@@ -4,10 +4,11 @@
 Repository for IEPS assignment 1
 
 ### TODO
+- [ ] perform HEAD first and check for redirects and check file type (content type)
 - [x] Extend the database with a hash or compare exact HTML code @lukatavcer
 - [ ] 10 bonus points for locally sensitive hashing
-- [ ] Include links from href attributes and onclick JS events
-- [ ] Detect images on a web page
+- [x] Detect images on a web page
+- [x] Include links from href attributes and onclick JS events
 - [x] Check if duplicate exist
     - check already parsed urls
     - check urls in frontier
