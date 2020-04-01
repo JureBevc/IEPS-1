@@ -116,6 +116,9 @@ class Crawler:
             if url.find("eprostor.si") >= 0:
                 print(url)
 
+            if url.find('e-uprava.gov.si') >= 0:
+                print(url)
+
             page_id, page_type = db.get_page(url=url)
             if not page_id:
                 # Maybe url came from the starting url seed, if so, we need to create page object
@@ -201,7 +204,7 @@ class Crawler:
                 continue
 
             # TODO set page_type appropriately, not just HTML
-            page_id = db.update_page(
+            db.update_page(
                 page_id=page_id,
                 fields=dict(
                     page_type_code="HTML",
@@ -223,6 +226,8 @@ class Crawler:
 
             for new_url in urls:
                 if new_url.find("eprostor.si") >= 0:
+                    print(url)
+                if new_url.find("e-uprava.gov.si") >= 0:
                     print(url)
 
                 # Create canonical version of the url
@@ -251,7 +256,7 @@ class Crawler:
                     existing_site_id = self.create_site(new_base_url, new_url_domain)
 
                 # Check if page with current url already exists, if not add url to frontier
-                duplicate_page_id, new_page_type = db.get_page(url=new_url)
+                duplicate_page_id, duplicate_page_type = db.get_page(url=new_url)
                 if duplicate_page_id:
                     new_page_id = db.create_page(
                         site_id=existing_site_id,
@@ -269,6 +274,9 @@ class Crawler:
                 # Everything was good, we can add this url to the frontier.
                 front.add_url(new_url)
 
+                if new_url.find("http://evem.gov.si/evem/drzavljani/zacetna.evem/") >= 0:
+                    print("FOUND")
+
                 # Create page object with FRONTIER type
                 db.create_page(
                     site_id=existing_site_id,
@@ -283,13 +291,13 @@ class Crawler:
                 if not img_url.startswith("http"):
                     # Url not valid
                     continue
-                img_type = img_url.split("/")[-1]
-                if "." in img_type:
-                    img_type = img_type.split(".")[-1]
+                filename = img_url.split("/")[-1]
+                if "." in filename:
+                    img_type = filename.split(".")[-1]
                 else:
                     img_type = "/"
                 img_type = img_type.lower()
-                db.create_image(page_id, img_url, img_type, datetime.now())
+                db.create_image(page_id, filename, img_type, datetime.now())
 
             url = front.get_url()
 

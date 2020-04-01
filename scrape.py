@@ -43,7 +43,7 @@ def main():
     crawlers = dict()
 
     for i in range(number_of_crawlers):
-        crawler = Crawler(name=f"crawler_{i}", front=frontier, log_level="ERROR", log_path="logs/crawldb.log")
+        crawler = Crawler(name=f"crawler_{i}", front=frontier, log_level="INFO", log_path="logs/crawldb.log")
         crawlers[i] = crawler
         crawler.start()
 
