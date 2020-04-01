@@ -10,6 +10,7 @@ import urllib.robotparser
 from crawler import page_parser
 from db.database import DB
 import time
+from datetime import datetime
 from logger import get_logger
 
 
@@ -146,7 +147,7 @@ class Crawler:
                 website_ip = socket.gethostbyname(domain)
             except Exception as e:
                 db.set_page_type(page_id, "DOMAIN_ERROR")
-                self.logger.error(f"Can't resolve domain name {domain}. Skip page {page_id} and set it as DOMAIN_ERROR.")
+                self.logger.warning(f"Can't resolve domain name {domain}. Skip page {page_id} and set it as DOMAIN_ERROR.")
                 url = front.get_url()
                 continue
 
@@ -261,15 +262,26 @@ class Crawler:
                 front.add_url(new_url)
 
                 # Create page object with FRONTIER type
-                page_id = db.create_page(
+                new_page_id = db.create_page(
                     site_id=existing_site_id,
                     url=new_url,
                     page_type_code="FRONTIER",
                 )
 
-            # Set current page as done with data type HTML
-            # TODO set actual data type, not always HTML, what if image or file
-            db.set_page_type(page_id, "HTML")
+            for img_url in img_urls:
+                if img_url.startswith("/"):
+                    # Relative url
+                    img_url = urljoin(base_url, img_url)
+                if not img_url.startswith("http"):
+                    # Url not valid
+                    continue
+                img_type = img_url.split("/")[-1]
+                if "." in img_type:
+                    img_type = img_type.split(".")[-1]
+                else:
+                    img_type = "/"
+                img_type = img_type.lower()
+                db.create_image(page_id, img_url, img_type, datetime.now())
 
             url = front.get_url()
 

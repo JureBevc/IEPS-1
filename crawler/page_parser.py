@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urljoin, urldefrag
 import urltools
-
+import re
 
 def canonicalize(base_url, url):
     """
@@ -77,7 +77,7 @@ def parse(browser):
     urls = []
     img_urls = []
     title = browser.title
-
+    email_regex = '^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$'
     html = browser.page_source
 
     # Create beautiful soup instance to find onclick links
@@ -87,13 +87,15 @@ def parse(browser):
         found = ref.find("href=")
         if found >= 0:
             url = ref[found+5:].strip().strip("\'").strip().strip("\"").strip()
-            urls.append(url)
+            if not re.search(email_regex, url):
+                urls.append(url)
             continue
 
         found = ref.find("location=")
         if found >= 0:
             url = ref[found+9:].strip().strip("\'").strip().strip("\"").strip()
-            urls.append(url)
+            if not re.search(email_regex, url):
+                urls.append(url)
             continue
 
     # Only need to check if onClick tag has: location.href or document.location
@@ -101,7 +103,9 @@ def parse(browser):
     for link in links:
         ref = link.get_attribute("href")
         if ref:
-            urls.append(ref)
+            ref = ref.strip()
+            if not re.search(email_regex, ref):
+                urls.append(ref)
     images = browser.find_elements_by_tag_name("img")
     for image in images:
         src = image.get_attribute("src")

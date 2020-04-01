@@ -124,6 +124,24 @@ class DB:
             self.conn.rollback()
         return None
 
+    def create_image(self, page_id, filename, content_type, accessed_time):
+        self.logger.info(
+            f"Create image with filename {filename}, content type {content_type} and accessed time {accessed_time}")
+        try:
+            query = "INSERT INTO image(page_id, filename, content_type, accessed_time) VALUES(%s, %s, %s, %s) RETURNING id;"
+            values = (page_id, filename, content_type, accessed_time)
+            executed = self.execute(query, values)
+            if executed:
+                self.conn.commit()
+                res = self.cur.fetchone()
+                if res:
+                    self.logger.info(f"    New image was created, id: {res[0]}")
+                    return res[0]
+        except Exception as e:
+            self.logger.error(e)
+            self.conn.rollback()
+        return None
+
     def get_site(self, domain=None):
         try:
             query = "SELECT id, robots_content FROM site WHERE domain = %s;"
@@ -208,7 +226,8 @@ class DB:
 
         return None, None
 
-    def create_page(self, site_id=None, page_type_code=None, url=None, html_content=None, http_status_code=None, accessed_time=None, html_content_hash=None):
+    def create_page(self, site_id=None, page_type_code=None, url=None, html_content=None, http_status_code=None,
+                    accessed_time=None, html_content_hash=None):
         # TODO check for duplicates here
         self.logger.info(f"Create a new {page_type_code} page with url: {url}")
 
