@@ -29,7 +29,7 @@ class Crawler:
         self.thread = None
 
         # Start logger
-        self.logger = get_logger(name)
+        self.logger = get_logger(name=name, level="ERROR")
 
     def start(self):
         # Save thread to the instance and start crawling

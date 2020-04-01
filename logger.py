@@ -4,7 +4,7 @@ import os
 ROOT_DIR = os.path.dirname(__file__)
 
 
-def get_logger(name=None):
+def get_logger(name=None, level="DEBUG"):
     format_str = '%(log_color)s%(asctime)s %(name)-10s %(levelname)-6s [%(filename)s:%(lineno)d] %(message)s'
     datefmt = '%m-%d %H:%M'
     colorlog.basicConfig(
@@ -19,5 +19,5 @@ def get_logger(name=None):
 
     logger = colorlog.getLogger(name)
     logger.addHandler(handler)
-    logger.setLevel('DEBUG')
+    logger.setLevel(level)
     return logger
