@@ -142,7 +142,7 @@ class Crawler:
             if page_type != "FRONTIER":
                 if url not in front.starting_urls:
                     self.logger.error(f"Page {page_id} with url {url} is of type {page_type} but it should be 'FRONTIER'.")
-                    # TODO should add page as duplicate? probably not because page from starting urls is not in DB frontier
+                    # TODO should add page as duplicate? this shouldn't happen
                 url = front.get_url()
                 continue
 
@@ -268,7 +268,6 @@ class Crawler:
                 url = front.get_url()
                 continue
 
-            # TODO set page_type appropriately, not just HTML
             db.update_page(
                 page_id=page_id,
                 fields=dict(
