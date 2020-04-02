@@ -82,7 +82,6 @@ class Crawler:
             if rp.default_entry:
                 robots_content = str(rp.default_entry)
 
-            # TODO make use of site maps
             if rp.site_maps():
                 site_maps = "\n".join(rp.site_maps())
 
@@ -98,7 +97,6 @@ class Crawler:
                 self.front.add_site_robots(site_id=site_id, rp=rp)
         except psycopg2.IntegrityError:
             site_id, _ = db.get_site(domain=domain)
-            print("Unique domain error")
 
         return site_id
 

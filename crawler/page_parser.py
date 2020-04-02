@@ -87,7 +87,7 @@ def parse(browser):
         found = ref.find("href=")
         if found >= 0:
             url = ref[found+5:].strip().strip("\'").strip().strip("\"").strip()
-            if not re.search(email_regex, url):
+            if not re.search(email_regex, url.lower()):
                 urls.append(url)
             continue
 
