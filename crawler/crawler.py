@@ -176,7 +176,7 @@ class Crawler:
             try:
                 response = requests.head(url)
                 response_status = response.status_code
-                if 300 >= response_status < 400:
+                if 300 <= response_status < 400:
                     redirected = response_status
 
                 headers = response.headers
