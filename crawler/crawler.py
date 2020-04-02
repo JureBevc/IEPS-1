@@ -313,16 +313,16 @@ class Crawler:
                 existing_site_id = site_id
 
                 # Check if domain matches current site_id
-                if new_url_domain == domain:
-                    if not front.can_fetch(existing_site_id, new_url):
-                        continue
-                else:
+                if new_url_domain != domain:
                     # if not try to fetch site with this domain from the database, if it exists,
                     # it means it already has robots.txt processed so we can check if we it is allowed to be added to the frontier or not
                     existing_site_id, _ = db.get_site(new_url_domain)
 
-                # If site doesn't exist, create new one
-                if not existing_site_id:
+                if existing_site_id:
+                    if not front.can_fetch(existing_site_id, new_url):
+                        continue
+                else:
+                    # If site doesn't exist, create new one
                     new_base_url = page_parser.get_base_url(new_url)
                     existing_site_id = self.create_site(new_base_url, new_url_domain)
 
