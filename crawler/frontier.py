@@ -39,7 +39,7 @@ class Frontier:
 
     def add_site_robots(self, site_id=None, rp=None):
         if self.site_robots.get(site_id):
-            print(f"Something went wrong, site {site_id} robots parser does not exist.")
+            print(f"Something went wrong, site {site_id} robots parser already exists.")
 
         self.site_robots[site_id] = rp
 
