@@ -29,7 +29,7 @@ class Frontier:
         return True
 
     def add_url(self, url):
-        self.url_queue.append(url)
+        self.url_queue.insert(0, url)
 
     def get_url(self):
         if self.url_queue:
