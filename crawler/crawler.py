@@ -210,9 +210,11 @@ class Crawler:
                         self.logger.info(f"Found BINARY with content-type: {content_type} on {url}")
                         db.update_page(
                             page_id=page_id,
-                            page_type_code="BINARY",
-                            http_status_code=redirected if redirected else response_status,
-                            accessed_time=datetime.now()
+                            fields=dict(
+                                page_type_code="BINARY",
+                                http_status_code=redirected if redirected else response_status,
+                                accessed_time=datetime.now()
+                            )
                         )
 
                         common_type = common_content_types.get(content_type)
