@@ -2,6 +2,7 @@ import hashlib
 from urllib.parse import urljoin
 
 import requests
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver import FirefoxProfile
 from seleniumrequests import Firefox
 from selenium.webdriver.firefox.options import Options
@@ -116,8 +117,11 @@ class Crawler:
 
         browser = Firefox(firefox_profile=ieps_profile, options=options, service_log_path='logs/geckodriver.log')
 
+        # Timeout before site is marked as TIMEOUT
+        browser.set_page_load_timeout(20)
+
         # Wait 5 seconds before throwing exception when not finding elements
-        browser.implicitly_wait(5)
+        browser.implicitly_wait(8)
 
         url = front.get_url()
         while url is not None:
@@ -236,7 +240,7 @@ class Crawler:
                     if content_length and int(content_length) > 10485760:
                         self.logger.warning(f"Content bigger than 10MB do something. {url}")
 
-                self.logger.info(headers)
+                self.logger.debug(headers)
             except Exception as e:
                 self.logger.info(f"HEAD method is not possible on {url}. {e}")
 
@@ -248,8 +252,17 @@ class Crawler:
             accessed_time = datetime.now()
             try:
                 browser.get(url)
+            except TimeoutException:
+                db.update_page(
+                    page_id=page_id,
+                    fields=dict(
+                        page_type_code="TIMEOUT",
+                        accessed_time=accessed_time
+                    )
+                )
+                url = front.get_url()
+                continue
             except Exception as e:
-                #self.logger.warning(f"Webdriver exception occured while fetching {url}. {e}")
                 db.update_page(
                     page_id=page_id,
                     fields=dict(

@@ -29,8 +29,12 @@ def main():
         rp.parse(robots_content.split("\n"))
         site_robots[site[0]] = rp
 
-    starting_urls = ["https://www.gov.si/", "http://evem.gov.si/", "https://e-uprava.gov.si/",
-                     "https://www.e-prostor.gov.si/"]
+    starting_urls = [
+        "https://www.gov.si/",
+        "http://evem.gov.si/",
+        "https://e-uprava.gov.si/",
+        "https://www.e-prostor.gov.si/"
+    ]
 
     # Check if url was already processed
     for url in starting_urls.copy():
@@ -65,7 +69,7 @@ def main():
                 break
         #  print("Crawlers still alive")
         time.sleep(1)
-    print("No crawlers alive")
+    logger.info("No crawlers alive")
 
 
 if __name__ == "__main__":
@@ -74,4 +78,4 @@ if __name__ == "__main__":
     except (KeyboardInterrupt, SystemExit):
         cleanup()
         sys.exit()
-    print("Exiting main thread.")
+    logger.info("Exiting main thread.")

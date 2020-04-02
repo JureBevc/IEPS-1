@@ -91,6 +91,7 @@ class DB:
                 self.cur.execute(query, values)
                 return True
             except psycopg2.IntegrityError as e:
+                self.conn.rollback()
                 raise e
             except Exception as e:
                 # Try to reestablish db connection
@@ -122,7 +123,6 @@ class DB:
                     self.logger.info(f"    New site was created, id: {res[0]}")
                     return res[0]
         except psycopg2.IntegrityError as e:
-            self.conn.rollback()
             raise e
         except Exception as e:
             self.logger.error(e)
@@ -236,7 +236,9 @@ class DB:
                     accessed_time=None, html_content_hash=None):
         self.logger.info(f"Create a new {page_type_code} page with url: {url}")
         if not site_id:
+            self.logger.error(f"Tried to create page without site_id. URL: {url}")
             return None
+
         if page_type_code == "DUPLICATE":
             query = """
                 INSERT INTO page(site_id, page_type_code, http_status_code, accessed_time, html_content_hash) 
@@ -258,6 +260,8 @@ class DB:
                 if res:
                     self.logger.info(f"    New {page_type_code} page was created, id: {res[0]}.")
                     return res[0]
+        except psycopg2.IntegrityError as e:
+            raise e
         except Exception as e:
             self.logger.error(e)
             self.conn.rollback()
