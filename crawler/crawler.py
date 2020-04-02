@@ -2,6 +2,7 @@ import hashlib
 from urllib.parse import urljoin
 
 import requests
+from selenium.webdriver import FirefoxProfile
 from seleniumrequests import Firefox
 from selenium.webdriver.firefox.options import Options
 import socket
@@ -24,6 +25,19 @@ class Crawler:
         self.front = front
         self.db = None
         self.thread = None
+
+        self.request_headers = requests.utils.default_headers()
+        self.request_headers.update(
+            {"User-Agent": "fri-ieps-crawler-lj"}
+        )
+
+        self.common_content_types = {
+            'application/vnd.ms-powerpoint': 'PPT',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PPTX',
+            'application/msword': 'DOC',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
+            'application/pdf': 'PDF',
+        }
 
         # Start logger
         self.logger = get_logger(name=name, level=log_level, log_path=log_path)
@@ -93,7 +107,13 @@ class Crawler:
 
         options = Options()
         options.headless = True
-        browser = Firefox(options=options, service_log_path='logs/geckodriver.log')
+
+        # Set user agent as IEPS
+        ieps_profile = FirefoxProfile()
+        ieps_profile.set_preference("general.useragent.override", "fri-ieps-crawler-lj")
+        options.set_capability('unhandledPromptBehavior', 'dismiss')
+
+        browser = Firefox(firefox_profile=ieps_profile, options=options, service_log_path='logs/geckodriver.log')
 
         # Wait 5 seconds before throwing exception when not finding elements
         browser.implicitly_wait(5)
@@ -168,7 +188,7 @@ class Crawler:
             redirected = None
             response_status = 200
             try:
-                response = requests.head(url)
+                response = requests.head(url, headers=self.request_headers)
                 response_status = response.status_code
                 if 300 <= response_status < 400:
                     redirected = response_status
@@ -177,29 +197,16 @@ class Crawler:
                 content_type = headers.get('content-type')
                 content_length = headers.get('content-length')
                 location = headers.get('location')
-                # Check for redirects and follow them
+
+                # Check for redirects and follow them untill you get to the final resource
                 while location:
                     self.logger.info(f"Follow redirect on: {location}")
-                    redirect = requests.head(location)
+                    redirect = requests.head(location, headers=self.request_headers)
                     response_status = redirect.status_code
                     headers = redirect.headers
                     location = headers.get('location')
                     content_type = headers.get('content-type')
                     content_length = headers.get('content-length')
-
-                common_content_types = {
-                    'application/vnd.ms-powerpoint': 'PPT',
-                    'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PPTX',
-                    'application/msword': 'DOC',
-                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
-                    'application/pdf': 'PDF',
-                }
-
-                # Content is bigger than 10MB
-                # 15 == 15728640
-                # TODO should do something, set this page as BINARY and skip it, because it is too big?
-                if content_length and int(content_length) > 10485760:
-                    print("test")
 
                 if content_type:
                     content_type = content_type.lower()
@@ -214,14 +221,17 @@ class Crawler:
                             )
                         )
 
-                        common_type = common_content_types.get(content_type)
+                        common_type = self.common_content_types.get(content_type)
                         db.create_page_data(page_id=page_id, data_type_code=common_type, data=content_type)
 
                         url = front.get_url()
                         continue
                 else:
-                    # TODO handle this or what?
-                    print("no content type")
+                    # Content is bigger than 10MB
+                    # 15 == 15728640
+                    # TODO should do something, set this page as BINARY and skip it, because it is too big?
+                    if content_length and int(content_length) > 10485760:
+                        self.logger.warning(f"Content bigger than 10MB do something. {url}")
 
                 self.logger.info(headers)
             except Exception as e:
@@ -251,8 +261,9 @@ class Crawler:
             # Set current time as the last request time for the current IP
             front.request_history[website_ip] = time.time()
 
-            # if hash matches any, mark it as duplicate and skip it, also create link to which site it points
+            # If hash matches any, mark it as duplicate and skip it, also create link to which site it points
             html_content = browser.page_source
+
             html_content_hash = hashlib.sha1(html_content.encode('UTF-8')).hexdigest()
             duplicate_id, duplicate_site_id = self.db.get_page_by_hash(html_content_hash)
             if duplicate_id:

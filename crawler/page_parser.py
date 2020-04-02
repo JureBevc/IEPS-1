@@ -114,7 +114,7 @@ def parse(browser):
                     urls.append(ref)
 
     except Exception as e:
-        print(e)
+        pass
 
     # except Exception as e:
     #     print(e)
@@ -129,6 +129,6 @@ def parse(browser):
             if src:
                 img_urls.append(src)
     except Exception as e:
-        print(e)
+        pass
 
     return title, urls, img_urls
