@@ -119,7 +119,7 @@ class Crawler:
         browser.set_page_load_timeout(20)
 
         # Wait 5 seconds before throwing exception when not finding elements
-        browser.implicitly_wait(8)
+        browser.implicitly_wait(5)
 
         url = front.get_url()
         while url is not None:
@@ -140,7 +140,8 @@ class Crawler:
             # Check if url is allowed (it is not inside frontier's disallowed urls)
             if not front.can_fetch(site_id, url):
                 self.logger.info(f"Skip not allowed URL: {url}")
-                # page_type = "DISALLOWED"
+                db.set_page_type("DISALLOWED")
+
                 url = front.get_url()
                 continue
 
@@ -247,7 +248,7 @@ class Crawler:
                 self.logger.info(f"HEAD method is not possible on {url}. {e}")
 
             # Wait 1 second before doing another GET request
-            time.sleep(1)
+            # time.sleep(1)
 
             # Everything is okay.
             # Finally get and parse page
