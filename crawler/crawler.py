@@ -9,6 +9,7 @@ import socket
 import threading
 import urllib.robotparser
 from crawler import page_parser
+import psycopg2
 from db.database import DB
 import time
 from datetime import datetime
@@ -73,14 +74,15 @@ class Crawler:
             self.logger.warning(e)
             add_robots_parser = False
 
-        # try:
-        site_id = db.create_site(domain=domain, robots_content=robots_content, sitemap_content=site_maps)
+        try:
+            site_id = db.create_site(domain=domain, robots_content=robots_content, sitemap_content=site_maps)
+        except psycopg2.IntegrityError:
+            site_id = db.get_site(domain=domain)
+            print("Unique domain error")
 
         # Add robotsparser to the frontier's site robot parsers
         if add_robots_parser:
             self.front.add_site_robots(site_id=site_id, rp=rp)
-        # except DuplicateKeyException as e:
-        #     site_id = db.get_site(domain=domain)
 
         return site_id
 

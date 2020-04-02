@@ -90,6 +90,8 @@ class DB:
             try:
                 self.cur.execute(query, values)
                 return True
+            except psycopg2.IntegrityError as e:
+                raise e
             except Exception as e:
                 # Try to reestablish db connection
                 self.logger.error(e)
@@ -119,6 +121,8 @@ class DB:
                 if res:
                     self.logger.info(f"    New site was created, id: {res[0]}")
                     return res[0]
+        except psycopg2.IntegrityError as e:
+            raise e
         except Exception as e:
             self.logger.error(e)
             self.conn.rollback()
