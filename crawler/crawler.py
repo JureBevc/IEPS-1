@@ -155,12 +155,16 @@ class Crawler:
                     # Create canonical version of the url
                     url = page_parser.canonicalize(base_url, url)
 
-                    # Create page object with FRONTIER type
-                    page_id = db.create_page(
-                        site_id=site_id,
-                        url=url,
-                        page_type_code=page_type,
-                    )
+                    try:
+                        # Create page object with FRONTIER type
+                        page_id = db.create_page(
+                            site_id=site_id,
+                            url=url,
+                            page_type_code=page_type,
+                        )
+                    except psycopg2.IntegrityError:
+                        # Another thread has already created this page, so we can skip it here.
+                        continue
                 else:
                     # Something went wrong in the process
                     self.logger.error(f"Page with url {url} is not in the database, but it should be as it was added to the frontier.")
@@ -345,25 +349,34 @@ class Crawler:
                 # Check if page with current url already exists, if not add url to frontier
                 duplicate_page_id, duplicate_page_type = db.get_page(url=new_url)
                 if duplicate_page_id:
-                    new_page_id = db.create_page(
-                        site_id=existing_site_id,
-                        url=new_url,
-                        page_type_code="DUPLICATE"
-                    )
+                    try:
+                        new_page_id = db.create_page(
+                            site_id=existing_site_id,
+                            url=new_url,
+                            page_type_code="DUPLICATE"
+                        )
 
-                    # Create a link
-                    db.create_link(new_page_id, duplicate_page_id)
+                        # Create a link
+                        db.create_link(new_page_id, duplicate_page_id)
+                    except psycopg2.IntegrityError:
+                        # Another thread has already created this page, so we can skip it here.
+                        pass
+
                     continue
 
                 # Everything was good, we can add this url to the frontier.
                 front.add_url(new_url)
 
                 # Create page object with FRONTIER type
-                db.create_page(
-                    site_id=existing_site_id,
-                    url=new_url,
-                    page_type_code="FRONTIER",
-                )
+                try:
+                    db.create_page(
+                        site_id=existing_site_id,
+                        url=new_url,
+                        page_type_code="FRONTIER",
+                    )
+                except psycopg2.IntegrityError:
+                    # Another thread has already created this page, so we can skip it here.
+                    continue
 
             for img_url in img_urls:
                 # Relative url

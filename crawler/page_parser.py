@@ -27,7 +27,7 @@ def canonicalize(base_url, url):
     try:
         url = urltools.normalize(url)
     except Exception as e:
-        print(e)
+        pass
 
     # Remove url fragments
     url = urldefrag(url).url
