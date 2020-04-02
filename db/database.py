@@ -104,7 +104,7 @@ class DB:
                 retries += 1
 
         # Tried to execute query 5 times, without success
-        self.logger.error(f"Failed to execute query {query}, number of retries: {retries}.")
+        self.logger.error(f"Failed to execute query {query} with VALUES: {values}, number of retries: {retries}.")
         return False
 
     def create_site(self, domain=None, robots_content=None, sitemap_content=None):

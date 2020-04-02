@@ -73,11 +73,14 @@ class Crawler:
             self.logger.warning(e)
             add_robots_parser = False
 
+        # try:
         site_id = db.create_site(domain=domain, robots_content=robots_content, sitemap_content=site_maps)
 
         # Add robotsparser to the frontier's site robot parsers
         if add_robots_parser:
             self.front.add_site_robots(site_id=site_id, rp=rp)
+        # except DuplicateKeyException as e:
+        #     site_id = db.get_site(domain=domain)
 
         return site_id
 

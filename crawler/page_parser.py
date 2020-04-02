@@ -3,6 +3,10 @@ from urllib.parse import urlparse, urljoin, urldefrag
 import urltools
 import re
 
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
 
 def canonicalize(base_url, url):
     """
@@ -28,12 +32,12 @@ def canonicalize(base_url, url):
     # Remove url fragments
     url = urldefrag(url).url
 
-    # Add a trailing slash? Maybe this si not okay in every case? for example images
+    # TODO Add a trailing slash? Maybe this si not okay in every case?
     if not url.endswith("/"):
         parameters = urltools.parse(url).query
         # Don't add trailing slash if url has parameters
-        if not parameters:
-            url += "/"
+        # if not parameters:
+        #     url += "/"
 
     return url
 
@@ -94,19 +98,32 @@ def parse(browser):
                 urls.append(url)
             continue
 
+    # try:
+    # links = browser.find_elements_by_tag_name("a").copy()
+    # for link in links:
+    # Wait 4 seconds before throwing StaleElementReferenceException
     try:
-        links = browser.find_elements_by_tag_name("a").copy()
+        links = WebDriverWait(browser, 5).until(
+            EC.presence_of_all_elements_located((By.TAG_NAME, "a"))
+        )
         for link in links:
             ref = link.get_attribute("href")
             if ref:
                 ref = ref.strip()
                 if not re.search(email_regex, ref):
                     urls.append(ref)
+
     except Exception as e:
         print(e)
 
+    # except Exception as e:
+    #     print(e)
+
     try:
-        images = browser.find_elements_by_tag_name("img").copy()
+        # images = browser.find_elements_by_tag_name("img").copy()
+        images = WebDriverWait(browser, 5).until(
+            EC.presence_of_all_elements_located((By.TAG_NAME, "img"))
+        )
         for image in images:
             src = image.get_attribute("src")
             if src:
