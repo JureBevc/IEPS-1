@@ -235,7 +235,8 @@ class DB:
     def create_page(self, site_id=None, page_type_code=None, url=None, html_content=None, http_status_code=None,
                     accessed_time=None, html_content_hash=None):
         self.logger.info(f"Create a new {page_type_code} page with url: {url}")
-
+        if not site_id:
+            return None
         if page_type_code == "DUPLICATE":
             query = """
                 INSERT INTO page(site_id, page_type_code, http_status_code, accessed_time, html_content_hash) 
