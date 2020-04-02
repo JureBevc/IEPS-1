@@ -25,6 +25,7 @@ class Crawler:
         self.front = front
         self.db = None
         self.thread = None
+        self.stop_signal = False
 
         self.request_headers = requests.utils.default_headers()
         self.request_headers.update(
@@ -49,6 +50,7 @@ class Crawler:
             self.db = DB(logger=self.logger)
 
             self.thread = threading.Thread(target=self.crawl)
+            self.thread.setDaemon(True)
             self.thread.start()
             return self.thread
         else:
@@ -56,8 +58,7 @@ class Crawler:
             return None
 
     def stop(self):
-        if self.db:
-            self.db.close()
+        self.stop_signal = True
 
     def create_site(self, base_url, domain):
         db = self.db
@@ -120,6 +121,8 @@ class Crawler:
 
         url = front.get_url()
         while url is not None:
+            if self.stop_signal:
+                break
             self.logger.info(f"Check url {url}")
 
             # Fetch current page from the database FRONTIER
@@ -246,7 +249,7 @@ class Crawler:
             try:
                 browser.get(url)
             except Exception as e:
-                self.logger.warning(f"Webdriver exception occured while fetching {url}. {e}")
+                #self.logger.warning(f"Webdriver exception occured while fetching {url}. {e}")
                 db.update_page(
                     page_id=page_id,
                     fields=dict(
@@ -374,3 +377,5 @@ class Crawler:
             url = front.get_url()
 
         browser.quit()
+        if self.db:
+            self.db.close()
