@@ -82,7 +82,7 @@ def parse(browser):
     # Only need to check if onclick attr has: href= or location=
     # Create beautiful soup instance to find onclick links
     soup = BeautifulSoup(html, 'html.parser')
-    for onclick in soup.body.find_all(attrs={'onclick': True}):
+    for onclick in soup.find_all(attrs={'onclick': True}):
         ref = onclick.attrs.get('onclick').strip()
         found = ref.find("href=")
         if found >= 0:
