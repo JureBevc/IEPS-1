@@ -122,10 +122,12 @@ class DB:
                     self.logger.info(f"    New site was created, id: {res[0]}")
                     return res[0]
         except psycopg2.IntegrityError as e:
+            self.conn.rollback()
             raise e
         except Exception as e:
             self.logger.error(e)
             self.conn.rollback()
+
         return None
 
     def create_image(self, page_id, filename, content_type, accessed_time):

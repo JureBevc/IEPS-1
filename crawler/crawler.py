@@ -261,7 +261,7 @@ class Crawler:
             # Set current time as the last request time for the current IP
             front.request_history[website_ip] = time.time()
 
-            # If hash matches any, mark it as duplicate and skip it, also create link to which site it points
+            # if hash matches any, mark it as duplicate and skip it, also create link to which site it points
             html_content = browser.page_source
 
             html_content_hash = hashlib.sha1(html_content.encode('UTF-8')).hexdigest()
