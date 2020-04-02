@@ -94,16 +94,24 @@ def parse(browser):
                 urls.append(url)
             continue
 
-    links = browser.find_elements_by_tag_name("a")
-    for link in links:
-        ref = link.get_attribute("href")
-        if ref:
-            ref = ref.strip()
-            if not re.search(email_regex, ref):
-                urls.append(ref)
-    images = browser.find_elements_by_tag_name("img")
-    for image in images:
-        src = image.get_attribute("src")
-        if src:
-            img_urls.append(src)
+    try:
+        links = browser.find_elements_by_tag_name("a").copy()
+        for link in links:
+            ref = link.get_attribute("href")
+            if ref:
+                ref = ref.strip()
+                if not re.search(email_regex, ref):
+                    urls.append(ref)
+    except Exception as e:
+        print(e)
+
+    try:
+        images = browser.find_elements_by_tag_name("img").copy()
+        for image in images:
+            src = image.get_attribute("src")
+            if src:
+                img_urls.append(src)
+    except Exception as e:
+        print(e)
+
     return title, urls, img_urls

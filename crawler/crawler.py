@@ -55,7 +55,7 @@ class Crawler:
         if not base_url:
             self.logger.error(f"No base url for {domain}")
         if not domain:
-            print(f"no domain for {base_url}")
+            self.logger.error(f"no domain for {base_url}")
 
         robots_url = urljoin(base_url, "robots.txt")
         rp = urllib.robotparser.RobotFileParser()
@@ -102,12 +102,6 @@ class Crawler:
                 self.logger.error(front_duplicates)
 
             # Fetch current page from the database FRONTIER
-            if url.find("eprostor.si") >= 0:
-                print(url)
-
-            if url.find('e-uprava.gov.si') >= 0:
-                print(url)
-
             domain = page_parser.get_domain(url)
             base_url = page_parser.get_base_url(url)
 
@@ -166,13 +160,12 @@ class Crawler:
 
                 # If it has been less than 5 seconds since last request, add url back to the frontier and get a new one
                 if diff < 5:
-                    # print("Waiting for " + url)
                     front.add_url(url)
                     url = front.get_url()
                     continue
 
             redirected = None
-
+            response_status = 200
             try:
                 response = requests.head(url)
                 response_status = response.status_code
@@ -187,6 +180,7 @@ class Crawler:
                 while location:
                     self.logger.info(f"Follow redirect on: {location}")
                     redirect = requests.head(location)
+                    response_status = redirect.status_code
                     headers = redirect.headers
                     location = headers.get('location')
                     content_type = headers.get('content-type')
@@ -202,11 +196,11 @@ class Crawler:
 
                 # Content is bigger than 10MB
                 # 15 == 15728640
+                # TODO should do something, set this page as BINARY and skip it, because it is too big?
                 if content_length and int(content_length) > 10485760:
                     print("test")
 
                 if content_type:
-                    print("found")
                     content_type = content_type.lower()
                     if content_type.find('text/html') < 0:
                         self.logger.info(f"Found BINARY with content-type: {content_type} on {url}")
@@ -214,7 +208,7 @@ class Crawler:
                             page_id=page_id,
                             fields=dict(
                                 page_type_code="BINARY",
-                                http_status_code=redirected if redirected else response_status,
+                                http_status_code=response_status if response_status else redirected,
                                 accessed_time=datetime.now()
                             )
                         )
@@ -224,14 +218,13 @@ class Crawler:
 
                         url = front.get_url()
                         continue
-                        # TODO mark page as BINARY and skip it
                 else:
-                    print("no content typeW")
+                    # TODO handle this or what?
+                    print("no content type")
 
                 self.logger.info(headers)
             except Exception as e:
-                self.logger.info(f"HEAD method is not possible on {url}")
-                self.logger.error(e)
+                self.logger.info(f"HEAD method is not possible on {url}. {e}")
 
             # Wait 1 second before doing another GET request
             time.sleep(1)
@@ -248,7 +241,7 @@ class Crawler:
                     fields=dict(
                         page_type_code="WEBDRIVER_ERROR",
                         accessed_time=accessed_time,
-                        http_status_code=redirected if redirected else None
+                        http_status_code=response_status if response_status else redirected
                     )
                 )
                 url = front.get_url()
@@ -282,7 +275,7 @@ class Crawler:
                     page_type_code="HTML",
                     html_content=html_content,
                     html_content_hash=html_content_hash,
-                    http_status_code=redirected if redirected else 200,
+                    http_status_code=response_status if response_status else redirected,
                     accessed_time=accessed_time
                 )
             )
@@ -297,11 +290,6 @@ class Crawler:
             )
 
             for new_url in urls:
-                if new_url.find("eprostor.si") >= 0:
-                    print(url)
-                if new_url.find("e-uprava.gov.si") >= 0:
-                    print(url)
-
                 # Create canonical version of the url
                 new_url = page_parser.canonicalize(base_url, new_url)
 
@@ -340,14 +328,8 @@ class Crawler:
                     db.create_link(new_page_id, duplicate_page_id)
                     continue
 
-                if new_url == "https://e-uprava.gov.si/":
-                    print(new_url)
-
                 # Everything was good, we can add this url to the frontier.
                 front.add_url(new_url)
-
-                if new_url.find("http://evem.gov.si/evem/drzavljani/zacetna.evem/") >= 0:
-                    print("FOUND")
 
                 # Create page object with FRONTIER type
                 db.create_page(
@@ -377,8 +359,6 @@ class Crawler:
 
                     img_type = img_type.lower()
                     db.create_image(page_id, filename, img_type, datetime.now())
-                else:
-                    print("something wrong")
 
             url = front.get_url()
 
