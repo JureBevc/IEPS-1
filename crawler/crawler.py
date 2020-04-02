@@ -185,8 +185,10 @@ class Crawler:
                 location = headers.get('location')
                 # Check for redirects and follow them
                 while location:
+                    self.logger.info(f"Follow redirect on: {location}")
                     redirect = requests.head(location)
-                    location = redirect.headers.get('location')
+                    headers = redirect.headers
+                    location = headers.get('location')
                     content_type = headers.get('content-type')
                     content_length = headers.get('content-length')
 
@@ -369,6 +371,10 @@ class Crawler:
                         img_type = filename.split(".")[-1]
                     else:
                         img_type = "/"
+
+                    if len(img_type) > 50:
+                        continue
+
                     img_type = img_type.lower()
                     db.create_image(page_id, filename, img_type, datetime.now())
                 else:
