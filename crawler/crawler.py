@@ -96,10 +96,6 @@ class Crawler:
         url = front.get_url()
         while url is not None:
             self.logger.info(f"Check url {url}")
-            front_duplicates = front.check_duplicates()
-            if front_duplicates:
-                self.logger.error("Duplicates found in the frontier")
-                self.logger.error(front_duplicates)
 
             # Fetch current page from the database FRONTIER
             domain = page_parser.get_domain(url)
@@ -263,7 +259,7 @@ class Crawler:
                     )
                 )
 
-                self.logger.info(f"Page {page_id} has a duplicate {duplicate_id} on url {url}.")
+                self.logger.info(f"Page {page_id} is a duplicate {duplicate_id} on url {url}.")
                 db.create_link(page_id, duplicate_id)
                 url = front.get_url()
                 continue

@@ -32,7 +32,7 @@ class DB:
 
     def truncate_all_tables(self):
         self.logger.info("Truncate all tables in database '{}'".format(self.dbname))
-        tables = ['link', 'page', 'site']
+        tables = ['page_data', 'image', 'link', 'page', 'site']
         for table in tables:
             self.cur.execute(f"TRUNCATE {table} CASCADE;")
         self.conn.commit()
