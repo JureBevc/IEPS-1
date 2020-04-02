@@ -92,7 +92,7 @@ class Crawler:
         try:
             site_id = db.create_site(domain=domain, robots_content=robots_content, sitemap_content=site_maps)
         except psycopg2.IntegrityError:
-            site_id = db.get_site(domain=domain)
+            site_id, _ = db.get_site(domain=domain)
             print("Unique domain error")
 
         # Add robotsparser to the frontier's site robot parsers
