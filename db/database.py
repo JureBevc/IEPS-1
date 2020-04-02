@@ -22,7 +22,7 @@ class DB:
 
     def create(self):
         self.logger.info("Import database '{}' from db/migrations/crawldb.sql".format(self.dbname))
-        self.cur.execute(open("migrations/crawldb.sql", "r").read())
+        self.cur.execute(open("db/migrations/crawldb.sql", "r").read())
         self.conn.commit()
 
     def drop_all_tables(self):
@@ -39,7 +39,7 @@ class DB:
 
     def migrate(self, file):
         self.logger.info("Migrate database '{}' with file: {}".format(self.dbname, file))
-        self.cur.execute(open(f"migrations/{file}", "r").read())
+        self.cur.execute(open(f"db/migrations/{file}", "r").read())
         self.conn.commit()
 
     def connect(self):
