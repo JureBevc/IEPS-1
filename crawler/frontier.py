@@ -1,3 +1,6 @@
+import collections
+
+
 class Frontier:
     request_history = dict()
 
@@ -39,3 +42,7 @@ class Frontier:
             print(f"Something went wrong, site {site_id} robots parser does not exist.")
 
         self.site_robots[site_id] = rp
+
+    def check_duplicates(self):
+        duplicates = [item for item, count in collections.Counter(self.url_queue).items() if count > 1]
+        return duplicates

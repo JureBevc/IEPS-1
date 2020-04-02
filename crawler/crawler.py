@@ -1,6 +1,7 @@
 import hashlib
 from urllib.parse import urljoin
 
+import requests
 from seleniumrequests import Firefox
 from selenium.webdriver.firefox.options import Options
 import socket
@@ -95,6 +96,17 @@ class Crawler:
         url = front.get_url()
         while url is not None:
             self.logger.info(f"Check url {url}")
+            front_duplicates = front.check_duplicates()
+            if front_duplicates:
+                self.logger.error("Duplicates found in the frontier")
+                self.logger.error(front_duplicates)
+
+            # Fetch current page from the database FRONTIER
+            if url.find("eprostor.si") >= 0:
+                print(url)
+
+            if url.find('e-uprava.gov.si') >= 0:
+                print(url)
 
             domain = page_parser.get_domain(url)
             base_url = page_parser.get_base_url(url)
@@ -111,13 +123,6 @@ class Crawler:
                 # page_type = "DISALLOWED"
                 url = front.get_url()
                 continue
-
-            # Fetch current page from the database FRONTIER
-            if url.find("eprostor.si") >= 0:
-                print(url)
-
-            if url.find('e-uprava.gov.si') >= 0:
-                print(url)
 
             page_id, page_type = db.get_page(url=url)
             if not page_id:
@@ -141,9 +146,9 @@ class Crawler:
                     continue
 
             if page_type != "FRONTIER":
-                # I gues something went wrong, or some other crawler already finished this page (probably shouldn't have happened)
-                self.logger.error(f"Page {page_id} with url {url} is of type {page_type} but it should be 'FRONTIER'.")
-                # TODO no! should add page as duplicate
+                if url not in front.starting_urls:
+                    self.logger.error(f"Page {page_id} with url {url} is of type {page_type} but it should be 'FRONTIER'.")
+                    # TODO should add page as duplicate? probably not because page from starting urls is not in DB frontier
                 url = front.get_url()
                 continue
 
@@ -166,9 +171,66 @@ class Crawler:
                     url = front.get_url()
                     continue
 
-            # TODO first do HEAD request to get page headers, maybe see if url is file etc...
+            redirected = None
 
-            # TODO make some minimal delay (1 sec then GET actual content)
+            try:
+                response = requests.head(url)
+                response_status = response.status_code
+                if 300 >= response_status < 400:
+                    redirected = response_status
+
+                headers = response.headers
+                content_type = headers.get('content-type')
+                content_length = headers.get('content-length')
+                location = headers.get('location')
+                # Check for redirects and follow them
+                while location:
+                    redirect = requests.head(location)
+                    location = redirect.headers.get('location')
+                    content_type = headers.get('content-type')
+                    content_length = headers.get('content-length')
+
+                common_content_types = {
+                    'application/vnd.ms-powerpoint': 'PPT',
+                    'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PPTX',
+                    'application/msword': 'DOC',
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
+                    'application/pdf': 'PDF',
+                }
+
+                # Content is bigger than 10MB
+                # 15 == 15728640
+                if content_length and int(content_length) > 10485760:
+                    print("test")
+
+                if content_type:
+                    print("found")
+                    content_type = content_type.lower()
+                    if content_type.find('text/html') < 0:
+                        self.logger.info(f"Found BINARY with content-type: {content_type} on {url}")
+                        db.update_page(
+                            page_id=page_id,
+                            page_type_code="BINARY",
+                            http_status_code=redirected if redirected else response_status,
+                            accessed_time=datetime.now()
+                        )
+
+                        common_type = common_content_types.get(content_type)
+                        db.create_page_data(page_id=page_id, data_type_code=common_type, data=content_type)
+
+                        url = front.get_url()
+                        continue
+                        # TODO mark page as BINARY and skip it
+                else:
+                    print("no content typeW")
+
+                self.logger.info(headers)
+            except Exception as e:
+                self.logger.info(f"HEAD method is not possible on {url}")
+                self.logger.error(e)
+
+            # Wait 1 second before doing another GET request
+            time.sleep(1)
 
             # Everything is okay.
             # Finally get and parse page
@@ -176,9 +238,15 @@ class Crawler:
             try:
                 browser.get(url)
             except Exception as e:
-                self.logger.error(f"Webdriver exception occured while fetching {url}. {e}")
-                db.set_page_type(page_id, "WEBDRIVER_ERROR")
-                # TODO set page accessed time
+                self.logger.warning(f"Webdriver exception occured while fetching {url}. {e}")
+                db.update_page(
+                    page_id=page_id,
+                    fields=dict(
+                        page_type_code="WEBDRIVER_ERROR",
+                        accessed_time=accessed_time,
+                        http_status_code=redirected if redirected else None
+                    )
+                )
                 url = front.get_url()
                 continue
 
@@ -210,7 +278,7 @@ class Crawler:
                     page_type_code="HTML",
                     html_content=html_content,
                     html_content_hash=html_content_hash,
-                    http_status_code=200,
+                    http_status_code=redirected if redirected else 200,
                     accessed_time=accessed_time
                 )
             )
@@ -285,19 +353,24 @@ class Crawler:
                 )
 
             for img_url in img_urls:
+                # Relative url
                 if img_url.startswith("/"):
-                    # Relative url
                     img_url = urljoin(base_url, img_url)
+
+                # Check if base64 or something else
                 if not img_url.startswith("http"):
                     # Url not valid
                     continue
                 filename = img_url.split("/")[-1]
-                if "." in filename:
-                    img_type = filename.split(".")[-1]
+                if len(filename) <= 255:
+                    if "." in filename:
+                        img_type = filename.split(".")[-1]
+                    else:
+                        img_type = "/"
+                    img_type = img_type.lower()
+                    db.create_image(page_id, filename, img_type, datetime.now())
                 else:
-                    img_type = "/"
-                img_type = img_type.lower()
-                db.create_image(page_id, filename, img_type, datetime.now())
+                    print("something wrong")
 
             url = front.get_url()
 

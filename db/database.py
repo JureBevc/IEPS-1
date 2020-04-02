@@ -302,6 +302,18 @@ class DB:
             self.conn.rollback()
         return None
 
+    def create_page_data(self, page_id=None, data_type_code=None, data=None):
+        self.logger.info(f"Create page {page_id} data with type: {data_type_code}")
+        try:
+            query = "INSERT INTO page_data(page_id, data_type_code, data) VALUES(%s, %s, %s);"
+            self.cur.execute(query, (page_id, data_type_code, data))
+            self.conn.commit()
+            return True
+        except Exception as e:
+            self.logger.error(e)
+            self.conn.rollback()
+        return None
+
     def get_types(self):
         self.cur.execute("SELECT * FROM data_type")
         while True:
