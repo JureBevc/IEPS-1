@@ -3,6 +3,9 @@
 
 Repository for IEPS assignment 1
 
+Running time: 10 hours
+Database dump URL: https://easyupload.io/q9uez0
+
 ## How to run?
 1) Create db_settings.py file in the db directory. You can copy db_settings.example.py and modify it with your data.
 2) Create a virtual environment and install requirements (follow Virtual Environment process bellow).
@@ -18,8 +21,6 @@ https://docs.python-guide.org/dev/virtualenvs/
 
 #
 #### Database
-
-link to file: https://easyupload.io/q9uez0
 
 The database can run in a docker container with the command \
 ```docker run --name postgresql-wier -e POSTGRES_PASSWORD=SecretPassword -e POSTGRES_USER=user -v $PWD/init-scripts:/docker-entrypoint-initdb.d  -p 5432:5432 -d postgres:9``` \
