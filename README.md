@@ -3,20 +3,14 @@
 
 Repository for IEPS assignment 1
 
-### TODO
-- [ ] perform HEAD first and check for redirects and check file type (content type)
-- [x] Extend the database with a hash or compare exact HTML code @lukatavcer
-- [ ] 10 bonus points for locally sensitive hashing
-- [x] Detect images on a web page
-- [x] Include links from href attributes and onclick JS events
-- [x] Check if duplicate exist
-    - check already parsed urls
-    - check urls in frontier
-    - check by html content hash
-- [x] Fetch and check robots.txt
-- [x] Respect 5 sec request rule (not only domain, IP too)
-#
-#### Virtual environment
+## How to run?
+1) Create db_settings.py file in the db directory. You can copy db_settings.example.py and modify it with your data.
+2) Create a virtual environment and install requirements (follow Virtual Environment process bellow).
+3) Create a database (import from the prepared crawldb.sql script in the db directory) with:
+```python -m db.create_database``` and then run migrations with ```python -m db.run_migration```.
+4) Run scrape script with ```python scrape.py```, you can pass number of crawlers/threads you want to run as the first argument otherwise 1 crawler will start.
+
+### Virtual environment
 https://docs.python-guide.org/dev/virtualenvs/
 1) create virtualenv
 2) activate virtualenv ```source venv/bin/activate```
@@ -24,6 +18,8 @@ https://docs.python-guide.org/dev/virtualenvs/
 
 #
 #### Database
+
+link to file: https://easyupload.io/q9uez0
 
 The database can run in a docker container with the command \
 ```docker run --name postgresql-wier -e POSTGRES_PASSWORD=SecretPassword -e POSTGRES_USER=user -v $PWD/init-scripts:/docker-entrypoint-initdb.d  -p 5432:5432 -d postgres:9``` \
@@ -44,10 +40,6 @@ A prompt for ```template1=#``` should appear. Enter the following commands: \
  ```$psql mydb databaseuser```, \
  where SQL statements can be executed.
 
-Note, that these instructions are written for Windows 10 and may differ on other systems
-
 If the database is running locally, the line \
 ```self.conn = psycopg2.connect(host="localhost", user="databaseuser", dbname="mydb",                                          password="SecretPassword")``` \
 in db.py's ```connect()``` method should be used.
-
- 
