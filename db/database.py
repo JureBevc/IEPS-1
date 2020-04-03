@@ -308,6 +308,8 @@ class DB:
             self.cur.execute(query, (from_page, to_page))
             self.conn.commit()
             return True
+        except psycopg2.IntegrityError as e:
+            raise e
         except Exception as e:
             self.logger.error(e)
             self.conn.rollback()

@@ -350,11 +350,8 @@ class Crawler:
                 # Check if page with current url already exists, if not add url to frontier
                 duplicate_page_id, duplicate_page_type = db.get_page(url=new_url)
                 if duplicate_page_id:
-                    db.create_link(page_id, duplicate_page_id)
+                    # db.create_link(page_id, duplicate_page_id)
                     continue
-
-                # Everything was good, we can add this url to the frontier.
-                front.add_url(new_url)
 
                 # Create page object with FRONTIER type
                 try:
@@ -364,10 +361,21 @@ class Crawler:
                         page_type_code="FRONTIER",
                     )
 
-                    db.create_link(page_id, new_page_id)
+                    # Everything was good, we can add this url to the frontier.
+                    front.add_url(new_url)
                 except psycopg2.IntegrityError:
                     # Another thread has already created this page, so we can skip it here.
-                    continue
+                    new_page_id, _ = db.get_page(new_url)
+                except Exception as e:
+                    self.logger.error(e)
+
+                try:
+                    db.create_link(page_id, new_page_id)
+                except psycopg2.IntegrityError:
+                    # Another thread has already created this link, so we can skip it here.
+                    pass
+                except Exception as e:
+                    self.logger.error(e)
 
             for img_url in img_urls:
                 # Relative url
