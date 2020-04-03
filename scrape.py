@@ -73,9 +73,15 @@ def main():
 
 
 if __name__ == "__main__":
+    start_time = time.time()
     try:
         main()
     except (KeyboardInterrupt, SystemExit):
         cleanup()
+        logger.info("Exiting main thread.")
+        run_time = time.time() - start_time
+        print(f"Crawler ran for {int(run_time / 60)} minutes")
         sys.exit()
     logger.info("Exiting main thread.")
+    run_time = time.time() - start_time
+    print(f"Crawler ran for {int(run_time/60)} minutes")
