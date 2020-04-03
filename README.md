@@ -3,7 +3,7 @@
 
 Repository for IEPS assignment 1
 
-Running time: 10 hours
+Running time: 10 hours \
 Database dump URL: https://easyupload.io/q9uez0
 
 ## How to run?
