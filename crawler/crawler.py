@@ -116,7 +116,7 @@ class Crawler:
         browser = Firefox(firefox_profile=ieps_profile, options=options, service_log_path='logs/geckodriver.log')
 
         # Timeout before site is marked as TIMEOUT
-        browser.set_page_load_timeout(20)
+        browser.set_page_load_timeout(15)
 
         # Wait 5 seconds before throwing exception when not finding elements
         browser.implicitly_wait(5)
@@ -297,7 +297,7 @@ class Crawler:
                 )
 
                 self.logger.info(f"Page {page_id} is a duplicate {duplicate_id} on url {url}.")
-                db.create_link(page_id, duplicate_id)
+                # db.create_link(page_id, duplicate_id)
                 url = front.get_url()
                 continue
 
@@ -350,6 +350,7 @@ class Crawler:
                 # Check if page with current url already exists, if not add url to frontier
                 duplicate_page_id, duplicate_page_type = db.get_page(url=new_url)
                 if duplicate_page_id:
+                    db.create_link(page_id, duplicate_page_id)
                     continue
 
                 # Everything was good, we can add this url to the frontier.
@@ -357,11 +358,13 @@ class Crawler:
 
                 # Create page object with FRONTIER type
                 try:
-                    db.create_page(
+                    new_page_id = db.create_page(
                         site_id=existing_site_id,
                         url=new_url,
                         page_type_code="FRONTIER",
                     )
+
+                    db.create_link(page_id, new_page_id)
                 except psycopg2.IntegrityError:
                     # Another thread has already created this page, so we can skip it here.
                     continue
