@@ -137,15 +137,17 @@ class Crawler:
                 # Site doesn't exists, create it
                 site_id = self.create_site(base_url, domain)
 
+            page_id, page_type = db.get_page(url=url)
+
             # Check if url is allowed (it is not inside frontier's disallowed urls)
             if not front.can_fetch(site_id, url):
                 self.logger.info(f"Skip not allowed URL: {url}")
-                db.set_page_type("DISALLOWED")
+                if page_id:
+                    db.set_page_type(page_id=page_id, page_type_code="DISALLOWED")
 
                 url = front.get_url()
                 continue
 
-            page_id, page_type = db.get_page(url=url)
             if not page_id:
                 # Maybe url came from the starting url seed, if so, we need to create page object
                 if url in front.starting_urls:
@@ -173,7 +175,6 @@ class Crawler:
             if page_type != "FRONTIER":
                 if url not in front.starting_urls:
                     self.logger.error(f"Page {page_id} with url {url} is of type {page_type} but it should be 'FRONTIER'.")
-                    # TODO should add page as duplicate? this shouldn't happen
                 url = front.get_url()
                 continue
 
@@ -191,6 +192,7 @@ class Crawler:
 
                 # If it has been less than 5 seconds since last request, add url back to the frontier and get a new one
                 if diff < 5:
+                    time.sleep(1)
                     front.add_url(url)
                     url = front.get_url()
                     continue
@@ -334,7 +336,7 @@ class Crawler:
                 # Check if domain matches current site_id
                 if new_url_domain != domain:
                     # if not try to fetch site with this domain from the database, if it exists,
-                    # it means it already has robots.txt processed so we can check if we it is allowed to be added to the frontier or not
+                    # it means it already has robots.txt processed so we can check if it is allowed to be added to the frontier or not
                     existing_site_id, _ = db.get_site(new_url_domain)
 
                 if existing_site_id:
