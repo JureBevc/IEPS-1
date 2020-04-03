@@ -1,11 +1,16 @@
 from db.database import DB
 
+# 398 www.gov.si https://www.gov.si/
+# 399 evem.gov.si http://evem.gov.si/
+# 400 www.e-prostor.gov.si https://www.e-prostor.gov.si/
+# 401 e-uprava.gov.si https://e-uprava.gov.si/
+
 db = DB()
 starting_pages = [
     "https://www.gov.si/",
-    "https://evem.gov.si/evem/drzavljani/zacetna.evem/",
+    "http://evem.gov.si/",
     "https://e-uprava.gov.si/",
-    "https://e-prostor.gov.si/"
+    "https://www.e-prostor.gov.si/"
 ]
 q = "SELECT l.from_page, COUNT(l.to_page) \
  FROM crawldb.link as l \

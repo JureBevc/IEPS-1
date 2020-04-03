@@ -250,7 +250,7 @@ class Crawler:
                 self.logger.info(f"HEAD method is not possible on {url}. {e}")
 
             # Wait 1 second before doing another GET request
-            # time.sleep(1)
+            time.sleep(1)
 
             # Everything is okay.
             # Finally get and parse page

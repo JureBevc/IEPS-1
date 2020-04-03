@@ -13,7 +13,6 @@ def canonicalize(base_url, url):
         https://github.com/rbaier/python-urltools
     """
 
-    # TODO "https://e-uprava.gov.si/*/" does not get parsed correctly
     # Fix relative urls
     url = urljoin(base_url, url)
 
@@ -32,12 +31,12 @@ def canonicalize(base_url, url):
     # Remove url fragments
     url = urldefrag(url).url
 
-    # TODO Add a trailing slash? Maybe this si not okay in every case?
-    if not url.endswith("/"):
-        parameters = urltools.parse(url).query
-        # Don't add trailing slash if url has parameters
-        # if not parameters:
-        #     url += "/"
+    # Add a trailing slash? Maybe this is not okay in every case?
+    # if not url.endswith("/"):
+    #     parameters = urltools.parse(url).query
+    #     Don't add trailing slash if url has parameters
+    #     if not parameters:
+    #         url += "/"
 
     return url
 
