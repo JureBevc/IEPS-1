@@ -1,11 +1,4 @@
-selenium
-url-normalize
-psycopg2-binary
-# psycopg2
 urllib3
-six
-colorlog
-selenium-requests
 requests
-urltools
 BeautifulSoup4
+lxml
