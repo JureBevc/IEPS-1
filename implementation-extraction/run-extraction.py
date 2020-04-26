@@ -4,22 +4,20 @@ from lxml import html
 
 
 pages = {
-    # "../input-extraction/rtvslo.si/Audi A6 50 TDI quattro_ nemir v premijskem razredu - RTVSLO.si.html": "rtv",
-    # "../input-extraction/rtvslo.si/Volvo XC 40 D4 AWD momentum_ suvereno med najboljsÌe v razredu - RTVSLO.si.html": "rtv",
-    # "../input-extraction/overstock.com/jewelry01.html": "overstock",
-    # "../input-extraction/overstock.com/jewelry02.html": "overstock",
+    "../input-extraction/rtvslo.si/Audi A6 50 TDI quattro_ nemir v premijskem razredu - RTVSLO.si.html": "rtv",
+    "../input-extraction/rtvslo.si/Volvo XC 40 D4 AWD momentum_ suvereno med najboljsÌe v razredu - RTVSLO.si.html": "rtv",
+    "../input-extraction/overstock.com/jewelry01.html": "overstock",
+    "../input-extraction/overstock.com/jewelry02.html": "overstock",
     "../input-extraction/bolha.com/Nogomet.html": "bolha",
     "../input-extraction/bolha.com/Macke.html": "bolha",
 }
 
 
 def regex(page, site):
-    print("Start regex extraction")
     pass
 
 
 def xpath(page, site):
-    print("Start XPath extraction")
     tree = html.fromstring(page)
     data = dict()
 
@@ -75,16 +73,15 @@ def main():
     elif method == 'B':
         algorithm = xpath
     elif method == 'C':
-        print("Start Automatic Web extraction")
         pass
 
     data = []
 
     for page, site in pages.items():
         page_content = open(page, 'rb').read()
-        data.append(algorithm(page_content, site))
-
-    print("Extraction done")
+        res = algorithm(page_content, site)
+        print(res)
+        data.append(res)
 
 
 if __name__ == "__main__":
