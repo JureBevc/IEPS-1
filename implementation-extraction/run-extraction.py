@@ -31,14 +31,24 @@ def xpath(page, site):
             Content="".join([p + "\n" for p in tree.xpath('//*[@id="main-container"]//div[@class="article-body"]//*[not(self::script)]/text()[normalize-space()]')])
         )
     elif site == "overstock":
-        data = dict(
-            Title='',
-            ListPrice='',
-            Price='',
-            Saving='',
-            SavingPercent='',
-            Content=''
-        )
+        data = []
+        i = 1
+        retries = 0
+        while retries < 3:
+            title = tree.xpath(f'//table[2]/tbody/tr[1]/td[5]/table/tbody/tr[2]/td/table/tbody/tr/td/table/tbody/tr[@bgcolor][{i}]/td[2]/a//text()')
+            if title:
+                retries = 0
+                data.append(dict(
+                    Title=title[0].strip(),
+                    ListPrice=tree.xpath(f'//table[2]/tbody/tr[1]/td[5]/table/tbody/tr[2]/td/table/tbody/tr/td/table/tbody/tr[@bgcolor][{i}]/td[2]/table//table//tr[1]/td[2]//text()[normalize-space()]')[0].strip(),
+                    Price=tree.xpath(f'//table[2]/tbody/tr[1]/td[5]/table/tbody/tr[2]/td/table/tbody/tr/td/table/tbody/tr[@bgcolor][{i}]/td[2]/table//table//tr[2]/td[2]//text()[normalize-space()]')[0].strip(),
+                    Saving=tree.xpath(f'//table[2]/tbody/tr[1]/td[5]/table/tbody/tr[2]/td/table/tbody/tr/td/table/tbody/tr[@bgcolor][{i}]/td[2]/table//table//tr[3]/td[2]/span//text()')[0].split()[0].strip(),
+                    SavingPercent=tree.xpath(f'//table[2]/tbody/tr[1]/td[5]/table/tbody/tr[2]/td/table/tbody/tr/td/table/tbody/tr[@bgcolor][{i}]/td[2]/table//table//tr[3]/td[2]/span//text()')[0].split()[1].strip(),
+                    Content="".join(tree.xpath(f'//table[2]/tbody/tr[1]/td[5]/table/tbody/tr[2]/td/table/tbody/tr/td/table/tbody/tr[@bgcolor][{i}]/td[2]/table/tbody/tr/td[2]//text()[normalize-space()]'))
+                ))
+            else:
+                retries += 1
+            i += 1
 
     return json.dumps(data)
 
