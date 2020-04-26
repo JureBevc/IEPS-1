@@ -6,8 +6,10 @@ from lxml import html
 pages = {
     # "../input-extraction/rtvslo.si/Audi A6 50 TDI quattro_ nemir v premijskem razredu - RTVSLO.si.html": "rtv",
     # "../input-extraction/rtvslo.si/Volvo XC 40 D4 AWD momentum_ suvereno med najboljsÌe v razredu - RTVSLO.si.html": "rtv",
-    "../input-extraction/overstock.com/jewelry01.html": "overstock",
-    "../input-extraction/overstock.com/jewelry02.html": "overstock",
+    # "../input-extraction/overstock.com/jewelry01.html": "overstock",
+    # "../input-extraction/overstock.com/jewelry02.html": "overstock",
+    "../input-extraction/bolha.com/Nogomet.html": "bolha",
+    "../input-extraction/bolha.com/Macke.html": "bolha",
 }
 
 
@@ -49,6 +51,17 @@ def xpath(page, site):
             else:
                 retries += 1
             i += 1
+    elif site == "bolha":
+        data = []
+        titles = tree.xpath(f'//div[@class="content-main"]//ul/li/article//h3[@class="entity-title"]//text()')
+        for i, title in enumerate(titles):
+            data.append(dict(
+                Title=title.strip(),
+                Description=tree.xpath(f'//div[@class="content-main"]//ul/li/article//div[@class="entity-description-main"]//text()[normalize-space()]')[i].strip(),
+                Price=tree.xpath(f'//div[@class="content-main"]//ul/li/article//div[@class="entity-prices"]//strong[@class="price price--hrk"]/text()[normalize-space()]')[i].strip() + " €",
+                PublishedDate=tree.xpath(f'//div[@class="content-main"]//ul/li/article//div[@class="entity-pub-date"]/time/text()[normalize-space()]')[i].strip(),
+                ImageUrl=tree.xpath(f'//div[@class="content-main"]//ul/li/article/div[@class="entity-thumbnail"]/a/img/@src')[i].strip(),
+            ))
 
     return json.dumps(data)
 
