@@ -1,7 +1,7 @@
 import sys
 import json
+import re
 from lxml import html
-
 
 pages = {
     "../input-extraction/rtvslo.si/Audi A6 50 TDI quattro_ nemir v premijskem razredu - RTVSLO.si.html": "rtv",
@@ -14,7 +14,69 @@ pages = {
 
 
 def regex(page, site):
-    pass
+    def extract(text, reg):
+        try:
+            return re.search(reg, text).group(1)
+        except AttributeError:
+            return ""
+
+    try:
+        page = str(page, "utf-8")
+    except (UnicodeDecodeError, AttributeError):
+        try:
+            page = str(page)
+        except (UnicodeDecodeError, AttributeError):
+            pass
+
+    data = dict()
+    if site == "rtv":
+        data["Author"] = extract(page, "<div class=\"author-name\">([^<]*)</div>")
+        data["PublishedTime"] = extract(page, "\s*(\d[^<]*)<br>")
+        data["Title"] = extract(page, "<title>([^<]*)</title>")
+        data["SubTitle"] = extract(page, "<div class=\"subtitle\">([^<]*)</div>")
+        data["Lead"] = extract(page, "<p class=\"lead\">(.*)</p>")
+        content = re.findall("<p[^>]*>([^<]*)</p>.*", page)
+        data["Content"] = " ".join(content)
+    elif site == "overstock":
+        data = []
+        titles = re.findall("PROD_ID[^>]*><b>([^<]*)</b></a><br>", page)
+        list_price = re.findall("<b>List Price:</b></td><td align=\"left\" nowrap=\"nowrap\"><s>([^<]*)</s></td></tr>", page)
+        price = re.findall("<b>Price:</b></td><td align=\"left\" nowrap=\"nowrap\"><span class=\"bigred\"><b>([^<]*)</b></span></td></tr>", page)
+        saving = re.findall("<b>You Save:</b></td><td align=\"left\" nowrap=\"nowrap\"><span class=\"littleorange\">([^<]*)</span></td></tr>", page)
+        content = re.findall("</td><td valign=\"top\"><span class=\"normal\">([^<]*)<br>", page)
+        for i in range(len(titles)):
+            data.append(dict(
+                Title=titles[i],
+                ListPrice=list_price[i],
+                Price=price[i],
+                Saving=saving[i].split(" ")[0],
+                SavingPercent=saving[i].split(" ")[1],
+                Content=content[i]
+            ))
+    elif site == "bolha":
+        data = []
+        titles = re.findall("<h3 class=\"entity-title\"><a[^>]*>([^<]*)</a></h3>", page)
+        desc = re.findall("<div class=\"entity-description-main\">\n*\s*([^<]*)<br>", page)
+        price = re.findall("<strong class=\"price price--hrk\">\n*\s*([^<]*)&nbsp;<span class=\"currency\">([^<]*)</span>", page)
+        date = re.findall("<time class=\"date[^>]*>([^<]*)</time>", page)
+        img = re.findall("<img class=\"img entity-thumbnail-img\" src=\"([^\"]*)\"", page)
+        #print(len(titles))
+        #print(len(desc))
+        #print(len(price))
+        #print(len(date))
+        #print(len(img))
+        """
+        for i in range(len(titles)):
+            print(titles[i])
+            data.append(dict(
+                Title = titles[i],
+                Description=desc[i],
+                Price=" ".join(price[i]),
+                PublishedDate=date[i],
+                ImageUrl=img[i]
+            ))
+        """
+    return json.dumps(data)
 
 
 def xpath(page, site):
@@ -60,7 +122,6 @@ def xpath(page, site):
                 PublishedDate=tree.xpath(f'//div[@class="content-main"]//ul/li/article//div[@class="entity-pub-date"]/time/text()[normalize-space()]')[i].strip(),
                 ImageUrl=tree.xpath(f'//div[@class="content-main"]//ul/li/article/div[@class="entity-thumbnail"]/a/img/@src')[i].strip(),
             ))
-
     return json.dumps(data)
 
 
