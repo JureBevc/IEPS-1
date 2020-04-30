@@ -14,8 +14,7 @@ The goal of this programming assignment is to implement three  different
 - RoadRunner-like implementation
 
 ### Additional websites
-[Bolha.com](https://www.bolha.com/nogomet)\
-[Ebay.com](https://www.ebay.com/sch/i.html?_from=R40&_trksid=m570.l1313&_nkw=football&_sacat=0)
+[Bolha.com](https://www.bolha.com/nogomet)
 
 #### Extracted data
 - Title
