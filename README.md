@@ -1,12 +1,19 @@
-# IEPS-1
+# IEPS
+
+## Assignment 2
+[Assignment2 is available here](https://github.com/JureBevc/IEPS-1/tree/assignment2)
+
+#
+
+
+## Assignment 1
 [![Python 3.8](https://img.shields.io/badge/python-3.8-blue.svg)](https://www.python.org/downloads/release/python-360/)
 
-Repository for IEPS assignment 1
 
 Running time: 10 hours \
 Database dump URL: https://easyupload.io/q9uez0
 
-## How to run?
+### How to run?
 1) Create db_settings.py file in the db directory. You can copy db_settings.example.py and modify it with your data.
 2) Create a virtual environment and install requirements (follow Virtual Environment process bellow).
 3) Create a database (import from the prepared crawldb.sql script in the db directory) with:
