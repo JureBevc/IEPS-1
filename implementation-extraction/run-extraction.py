@@ -2,6 +2,8 @@ import sys
 import json
 import re
 from lxml import html
+from bs4 import BeautifulSoup
+from difflib import SequenceMatcher
 
 pages = {
     "../input-extraction/rtvslo.si/Audi A6 50 TDI quattro_ nemir v premijskem razredu - RTVSLO.si.html": "rtv",
@@ -11,6 +13,30 @@ pages = {
     "../input-extraction/bolha.com/Nogomet.html": "bolha",
     "../input-extraction/bolha.com/Macke.html": "bolha",
 }
+
+
+def levenshteinDistance(o1, o2):
+    if len(o1) > len(o2):
+        o1, o2 = o2, o1
+
+    distances = range(len(o1) + 1)
+    for i2, c2 in enumerate(o2):
+        distances_ = [i2+1]
+        for i1, c1 in enumerate(o1):
+            if c1 == c2:
+                distances_.append(distances[i1])
+            else:
+                distances_.append(1 + min((distances[i1], distances[i1 + 1], distances_[-1])))
+        distances = distances_
+    result =  distances[-1]
+    normalized = result / ((len(o1) + len(o2)) / 2)
+    return 1 - normalized
+
+
+def diff_score(s1,s2):
+    seq_match = SequenceMatcher(None, s1, s2)
+    match = seq_match.find_longest_match(0, len(s1), 0, len(s2))
+    return (len(s1) + len(s2) - 2* match.size) / (len(s1) + len(s2))
 
 
 def regex(page, site):
@@ -134,6 +160,98 @@ def xpath(page, site):
     return json.dumps(data)
 
 
+def webmaster(page1, page2):
+    # parse page to get a layout of blocks such as <p>, <div>, <h1>, <title>. <table> ...
+    keep_tags = ['p', 'div', 'h1', 'title', 'table'] # Add better tags
+    layouts = []
+    tag_content = []
+    pages = [page1, page2]
+
+    for page in pages:
+        page_content = open(page, 'rb')
+        layout_block = []
+        tc = []
+        soup = BeautifulSoup(page_content, 'lxml')
+        for child in soup.recursiveChildGenerator():
+            name = getattr(child, "name", None)
+            if name in keep_tags:
+                layout_block.append(name)
+                tc.append(child.next)
+        layouts.append(layout_block)
+        tag_content.append(tc)
+
+    # compare similarity between pages
+    document_diff = levenshteinDistance(layouts[0], layouts[1])
+
+    # generate a common layout pattern
+    l1 = len(layouts[0])
+    l2 = len(layouts[1])
+    i = 0
+    # print(min(l1,l2))
+    while True:
+        # print(i)
+        if i >= l1 or i >= l2:
+            break
+        if layouts[0][i] != layouts[1][i]:
+            del(layouts[0][i])
+            del(layouts[1][i])
+            del (tag_content[0][i])
+            del (tag_content[1][i])
+            l1 = len(layouts[0])
+            l2 = len(layouts[1])
+            continue
+        i +=1
+
+    # remove banners and navigation links
+    l1 = len(layouts[0])
+    l2 = len(layouts[1])
+    i = 0
+    diff_treshold = 0.25
+    # print(min(l1,l2))
+    while True:
+        # print(i)
+        if i >= l1 or i >= l2:
+            break
+        if layouts[0][i] == layouts[1][i]:
+            # print(str(tag_content[0][i]) + "\n" + str(tag_content[1][i]))
+            d = diff_score(str(tag_content[0][i]), str(tag_content[1][i]))
+            # print(d)
+            if d < diff_treshold:
+                del (layouts[0][i])
+                del (layouts[1][i])
+                del (tag_content[0][i])
+                del (tag_content[1][i])
+                l1 = len(layouts[0])
+                l2 = len(layouts[1])
+                continue
+        i += 1
+
+    # title and main text comparison omitted because there is no clustering to determine
+    # which cluster is the most important
+
+    # results
+    print("# pages included: " )
+    print("# " + page1.split("/")[-2] + "/" +page1.split("/")[-1])
+    print("# " + page2.split("/")[-2] + "/" +page2.split("/")[-1])
+    print("initial_document_difference: " + str(document_diff))
+
+    l1 = len(layouts[0])
+    l2 = len(layouts[1])
+    i = 0
+    print("(diff_score, block tag, block feature)")
+    while True:
+        if i >= l1 or i >= l2:
+            break
+        if layouts[0][i] == layouts[1][i]:
+            content = ''.join(str(tag_content[0][i]).split())
+            if content != "":
+                if len(content) > 65:
+                    content = content[:65] + "..."
+                d = diff_score(str(tag_content[0][i]), str(tag_content[1][i]))
+                print("(" + str(d) + ", " + layouts[0][i] + ", " + content + ")")
+        i += 1
+
+
 def main():
     method = sys.argv[1]
     algorithm = None
@@ -143,15 +261,23 @@ def main():
     elif method == 'B':
         algorithm = xpath
     elif method == 'C':
-        pass
+        algorithm = webmaster
 
     data = []
 
-    for page, site in pages.items():
-        page_content = open(page, 'rb').read()
-        res = algorithm(page_content, site)
-        print(res)
-        data.append(res)
+    if method != 'C':
+        for page, site in pages.items():
+            page_content = open(page, 'rb').read()
+            res = algorithm(page_content, site)
+            print(res)
+            data.append(res)
+    else:  # automatic wrapper generation compares 2 pages at a time
+        pag = list(pages.keys())
+        algorithm(pag[0], pag[1])
+        print("---------------------------------")
+        algorithm(pag[2], pag[3])
+        print("---------------------------------")
+        algorithm(pag[4], pag[5])
 
 
 if __name__ == "__main__":
