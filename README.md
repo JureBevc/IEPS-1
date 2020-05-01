@@ -3,6 +3,7 @@
 
 Libraries used:
 - [lxml](https://pypi.org/project/lxml/)
+- [beautifulsoup4](https://pypi.org/project/beautifulsoup4/)
 
 ## Assignment 2
 [Instructions](https://szitnik.github.io/wier-labs/PA2.html)
