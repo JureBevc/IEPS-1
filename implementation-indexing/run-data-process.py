@@ -27,7 +27,7 @@ nltk.download('punkt')
 
 
 db = DB()
-db.create()
+# db.create()
 
 for site in sites:
     # Open all HTML files in current site directory
