@@ -1,12 +1,13 @@
 from db.database import DB
 import os
 from bs4 import BeautifulSoup
+import nltk
+from data.stopwords import stop_words_slovene
 
 
 # db = DB()
 # db.create()
 # db.close()
-
 
 """
      Prior to indexing we need to retrieve textual data from web pages. To get whole textual data, you can 
@@ -24,6 +25,10 @@ sites = [
     'podatki.gov.si',
 ]
 
+nltk.download('stopwords')
+nltk.download('punkt')
+
+print(stop_words_slovene)
 for site in sites:
     # Open all HTML files in current site directory
     path = f"data/{site}"
@@ -33,5 +38,20 @@ for site in sites:
         if not file.endswith('.html'):
             continue
 
-        soup = BeautifulSoup(open(f"{path}/{file}", 'rb').read())
-        print(soup.get_text())
+        # Get page text
+        soup = BeautifulSoup(open(f"{path}/{file}", 'rb').read(), "html.parser")
+        text = soup.get_text()
+
+        # Tokenize page text
+        # tokenized = StringTokenizer.tokenize(text)
+        tokenized = nltk.word_tokenize(text, language="slovene")
+
+        cleaned = []
+
+        # Remove stopwords & lowercase letter normalization
+        for token in tokenized:
+            token = token.lower()
+            if token not in stop_words_slovene:
+                cleaned.append(token)
+
+                # Index token

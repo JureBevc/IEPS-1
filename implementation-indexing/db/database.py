@@ -16,13 +16,13 @@ class DB:
         self.connect()
 
     def create(self):
-        create_index_word = '''
+        self.cur.execute('''
             CREATE TABLE IndexWord (
               word TEXT PRIMARY KEY
             );
-        '''
+        ''')
 
-        create_posting = '''
+        self.cur.execute('''
             CREATE TABLE Posting (
               word TEXT NOT NULL,
               documentName TEXT NOT NULL,
@@ -31,10 +31,8 @@ class DB:
               PRIMARY KEY(word, documentName),
               FOREIGN KEY (word) REFERENCES IndexWord(word)
             );
-        '''
+        ''')
 
-        self.cur.execute(create_index_word)
-        self.cur.execute(create_posting)
         self.conn.commit()
 
     def connect(self):
