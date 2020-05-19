@@ -3,11 +3,8 @@ import os
 from bs4 import BeautifulSoup
 import nltk
 from data.stopwords import stop_words_slovene
+import re
 
-
-# db = DB()
-# db.create()
-# db.close()
 
 """
      Prior to indexing we need to retrieve textual data from web pages. To get whole textual data, you can 
@@ -28,30 +25,49 @@ sites = [
 nltk.download('stopwords')
 nltk.download('punkt')
 
-print(stop_words_slovene)
+
+db = DB()
+# db.create()
+
 for site in sites:
     # Open all HTML files in current site directory
     path = f"data/{site}"
     files = os.listdir(path)
 
-    for file in files:
-        if not file.endswith('.html'):
+    for doc_name in files:
+        if not doc_name.endswith('.html'):
             continue
 
         # Get page text
-        soup = BeautifulSoup(open(f"{path}/{file}", 'rb').read(), "html.parser")
+        soup = BeautifulSoup(open(f"{path}/{doc_name}", 'rb').read(), "html.parser")
         text = soup.get_text()
 
         # Tokenize page text
         # tokenized = StringTokenizer.tokenize(text)
         tokenized = nltk.word_tokenize(text, language="slovene")
 
-        cleaned = []
-
-        # Remove stopwords & lowercase letter normalization
-        for token in tokenized:
-            token = token.lower()
+        for word in tokenized:
+            # Remove stopwords & lowercase letter normalization
+            token = word.lower()
             if token not in stop_words_slovene:
-                cleaned.append(token)
+                # Insert tokenized word into IndexWord if it doesn't exist yet
+                db.create_index_word(token)
 
-                # Index token
+                # Get word appearance indexes in the original document
+                indexes = [str(m.start()) for m in re.finditer(re.escape(word), text)]
+                frequency = len(indexes)
+
+                # Check if posting exists
+                posting = db.get_posting(token, doc_name)
+
+                if not posting:
+                    db.create_posting(token, doc_name, frequency, ",".join(indexes))
+                else:
+                    # Combine indexes with new found indexes to prevent duplicates
+                    unique_indexes = set(posting[3].split(',') + indexes)
+
+                    # Check if indices have changed: there are new indexes, update database
+                    if len(unique_indexes) != posting[2]:
+                        db.update_posting(token, doc_name, len(unique_indexes), ",".join(unique_indexes))
+
+db.close()

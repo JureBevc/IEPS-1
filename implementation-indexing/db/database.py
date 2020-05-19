@@ -51,10 +51,22 @@ class DB:
         if self.conn:
             self.conn.close()
 
+    def get_posting(self, word=None, doc_name=None):
+        # Returns posting word, doc_name, frequency, indexes
+        self.cur.execute("SELECT * FROM Posting WHERE word=? AND documentName=?", (word, doc_name))
+        posting = self.cur.fetchone()
+        if posting:
+            return posting
+        return None
+
     def create_posting(self, word=None, doc_name=None, frequency=None, indexes=None):
         self.cur.execute("INSERT INTO Posting(word, documentName, frequency, indexes) VALUES (?, ?, ?, ?)", (word, doc_name, frequency, indexes))
         self.conn.commit()
 
+    def update_posting(self, word=None, doc_name=None, frequency=None, indexes=None):
+        self.cur.execute("UPDATE Posting SET frequency=?, indexes=? WHERE word=? AND documentName=?", (frequency, indexes, word, doc_name))
+        self.conn.commit()
+
     def create_index_word(self, word=""):
-        self.cur.execute("INSERT INTO IndexWord(word) VALUES (?)", word)
+        self.cur.execute("INSERT OR IGNORE INTO IndexWord(word) VALUES (?)", (word,))
         self.conn.commit()
