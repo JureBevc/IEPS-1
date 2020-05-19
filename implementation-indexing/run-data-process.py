@@ -27,16 +27,18 @@ nltk.download('punkt')
 
 
 db = DB()
-# db.create()
+db.create()
 
 for site in sites:
     # Open all HTML files in current site directory
     path = f"data/{site}"
     files = os.listdir(path)
+    print(f"\n\n{site}")
 
     for doc_name in files:
         if not doc_name.endswith('.html'):
             continue
+        print(doc_name)
 
         # Get page text
         soup = BeautifulSoup(open(f"{path}/{doc_name}", 'rb').read(), "html.parser")
