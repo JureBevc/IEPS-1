@@ -42,7 +42,12 @@ for site in sites:
 
         # Get page text
         soup = BeautifulSoup(open(f"{path}/{doc_name}", 'rb').read(), "html.parser")
-        text = soup.get_text()
+
+        # Remove scripts
+        for s in soup.select('script'):
+            s.extract()
+
+        text = soup.body.get_text()
 
         # Tokenize page text
         # tokenized = StringTokenizer.tokenize(text)
