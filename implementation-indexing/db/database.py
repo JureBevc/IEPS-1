@@ -59,12 +59,27 @@ class DB:
             return posting
         return None
 
+    def get_all_postings(self, word=None):
+        # Returns all postings with word
+        query = "SELECT documentName, SUM(frequency) AS frequency_sum, GROUP_CONCAT(indexes) "
+        query += "FROM Posting WHERE word='" + word[0] + "' "
+        for i in range(1, len(word)):
+            query += "OR word='" + word[i] + "' "
+        query += "GROUP BY documentName ORDER BY frequency_sum DESC"
+        self.cur.execute(query)
+        postings = self.cur.fetchall()
+        if postings:
+            return postings
+        return None
+
     def create_posting(self, word=None, doc_name=None, frequency=None, indexes=None):
-        self.cur.execute("INSERT INTO Posting(word, documentName, frequency, indexes) VALUES (?, ?, ?, ?)", (word, doc_name, frequency, indexes))
+        self.cur.execute("INSERT INTO Posting(word, documentName, frequency, indexes) VALUES (?, ?, ?, ?)",
+                         (word, doc_name, frequency, indexes))
         self.conn.commit()
 
     def update_posting(self, word=None, doc_name=None, frequency=None, indexes=None):
-        self.cur.execute("UPDATE Posting SET frequency=?, indexes=? WHERE word=? AND documentName=?", (frequency, indexes, word, doc_name))
+        self.cur.execute("UPDATE Posting SET frequency=?, indexes=? WHERE word=? AND documentName=?",
+                         (frequency, indexes, word, doc_name))
         self.conn.commit()
 
     def create_index_word(self, word=""):
