@@ -71,7 +71,7 @@ def generate_postings(tokens):
     return postings
 
 
-def sql_search(text):
+def basic_search(text):
     print("Results for a query: " + text)
 
     # Tokenize the query
@@ -121,4 +121,4 @@ def sql_search(text):
 
 
 if __name__ == "__main__":
-    sql_search(" ".join(sys.argv[1:]))
+    basic_search(" ".join(sys.argv[1:]))
