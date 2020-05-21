@@ -1,5 +1,10 @@
 # IEPS
 
+## Assignment 3
+[Assignment3 is available here](https://github.com/JureBevc/IEPS-1/tree/assignment3)
+
+
+#
 ## Assignment 2
 [Assignment2 is available here](https://github.com/JureBevc/IEPS-1/tree/assignment2)
 
