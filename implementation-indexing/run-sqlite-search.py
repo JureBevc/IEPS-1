@@ -17,9 +17,6 @@ sites = [
     'podatki.gov.si',
 ]
 
-WINDOWS_LINE_ENDING = '\r\n'
-UNIX_LINE_ENDING = '\n'
-
 
 def get_document_text(doc_name):
     path = None
@@ -30,13 +27,13 @@ def get_document_text(doc_name):
     file_path = f"data/{path}/{doc_name}"
     # print("Reading file " + file_path)
     # Get page text
-    soup = BeautifulSoup(open(file_path, 'rb').read(), "html.parser")
+    soup = BeautifulSoup(open(file_path, 'r', newline='\n').read(), "html.parser")
 
     # Remove scripts
     for s in soup.select('script'):
         s.extract()
 
-    return soup.body.get_text().replace(WINDOWS_LINE_ENDING, UNIX_LINE_ENDING)
+    return soup.body.get_text()
 
 
 def sql_search(text):
