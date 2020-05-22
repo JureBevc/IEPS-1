@@ -84,7 +84,8 @@ def basic_search(text):
     max_postings = 5
     postings_i = 0
     for posting in postings:
-        ids = [int(n) for n in posting[2].split(",")]
+        ids = [int(n) for n in posting[2].split(",") if n]
+
         ids.sort()
         doc_text = get_document_text(posting[0])
 
